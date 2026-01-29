@@ -1,0 +1,207 @@
+### Ray
+# Loading all models parallel or not
+parallel_loading: false
+agent_workflow: "base"
+agent_func_path: null
+
+workflow_version: "old" # old (custom) or new (unified graph)
+
+# shared parameters among agents
+shared_agents: false
+
+### Credit Assisgnment
+# Trainable Credit Model
+credit_ref_num_nodes: 1
+credit_ref_num_gpus_per_node: 8
+credit_num_nodes: 1
+credit_num_gpus_per_node: 8
+colocate_credit_ref: false
+credit_beta: 0.05
+credit_granularity: "token"
+credit_nll_loss: false
+credit_nll_loss_coef: 0.0
+credit_grad_clip: 10.0
+credit_adam_betas: [0.9, 0.95]
+credit_l2: 0.0
+credit_score_type: "process"
+credit_learning_rate: 1.0e-6
+credit_pretrain: null
+credit_scheduler: "constant_with_warmup"
+credit_lr_warmup_ratio: 0.0
+credit_batch_norm: false
+credit_model: null # prime / saliency
+warmup_steps_for_credit: -1
+credit_score_coef: 1.0
+verifier_score_coef: 1.0
+
+# Rule-based Reward Shaping
+reward_alloc:
+  name: null # quality / margin / quality_with_outcome / quality_with_margin
+  alpha: 0.5
+  beta: 0.5
+  use_ttrl: false
+
+# Allow a list of labels for each problem
+allow_label_list: false
+separate_label_list: null
+
+### Advanced RL tricks
+mask_truncated_completions: false # https://github.com/huggingface/trl/pull/3248/
+eval_before_training: true
+eval_only: false
+eval_workers: -1
+
+# For Qwen3
+# enable_thinking: false
+
+### Default Agent Parameters (e.g., single agent)
+default_agent:
+  pg_strategy: "SPREAD"
+  # Models
+  role: "base"
+  is_reasoning_model: false
+  enable_thinking: false
+  is_tuning: true
+  pretrain: null
+  reward_pretrain: null
+  remote_rm_url: null
+  critic_pretrain: null
+  value_head_prefix: "score"
+  ref_reward_offload: false
+  # Agents' ref/actor/critic models
+  ref_num_nodes: 1
+  ref_num_gpus_per_node: 8
+  reward_num_nodes: 1
+  reward_num_gpus_per_node: 8
+  colocate_actor_ref: false
+  colocate_all_models: false
+  actor_num_nodes: 1
+  actor_num_gpus_per_node: 8
+  critic_num_nodes: 1
+  critic_num_gpus_per_node: 8
+  colocate_critic_reward: false
+  # vLLM
+  vllm_num_engines: 4
+  vllm_tensor_parallel_size: 1
+  vllm_sync_backend: "gloo"
+  vllm_gpu_memory_utilization: 0.9
+  vllm_enable_sleep: false
+  deepspeed_enable_sleep: false
+  enable_prefix_caching: false
+  enforce_eager: false
+  # Agents' setting
+  # Checkpoints
+  eval_steps: -1
+  logging_steps: 1
+  save_steps: -1
+  ckpt_path: "./ckpt/checkpoints_ppo_ray"
+  max_ckpt_num: 3
+  max_ckpt_mem: 100000000
+  load_checkpoint: false
+  # DeepSpeed
+  local_rank: -1
+  zero_stage: 2
+  gradient_checkpointing: false
+  bf16: false
+  enable_ema: false
+  zpg: 1
+  adam_offload: false
+  actor_init_on_gpu: false
+  flash_attn: false
+  grad_accum_dtype: null
+  disable_trace_cache: false
+  gradient_checkpointing_use_reentrant: false
+  disable_fast_tokenizer: false
+  # LoRA
+  load_in_4bit: false
+  lora_rank: 0
+  lora_alpha: 16
+  target_modules: "all-linear"
+  lora_dropout: 0.0
+  # PPO
+  save_path: "./ckpt"
+  num_episodes: 1
+  rollout_batch_size: 1024
+  micro_rollout_batch_size: 8
+  max_epochs: 1
+  max_len: null
+  prompt_max_len: 1024
+  generate_max_len: 1024
+  truncate_prompt: false
+  max_samples: 100000000
+  random_sample_train: false  # Enable random subset sampling from training set (default: false for backward compatibility)
+  save_sampled_dataset: false  # Save randomly sampled dataset to output directory for reproducibility (default: false)
+  max_norm: 1.0
+  l2: 0.0
+  ptx_coef: 0.05
+  eps_clip: 0.2
+  clip_eps_high: 0.2
+  policy_loss_type: "ppo"
+  token_level_loss: true
+  value_clip: 0.2
+  lambd: 0.95
+  gamma: 1
+  micro_train_batch_size: 4
+  train_batch_size: 128
+  normalize_reward: false
+  top_p: 1.0
+  temperature: 1.0
+  eval_temperature: 0.0
+  seed: 42
+  freezing_actor_steps: -1
+  n_samples_per_prompt: 1
+  save_value_network: false
+  use_kl_loss: false
+  actor_learning_rate: 1.0e-6
+  critic_learning_rate: 9.0e-6
+  lr_warmup_ratio: 0.03
+  lr_warmup_steps: null
+  kl_target: null
+  init_kl_coef: 0.01
+  use_kl_estimator_k3: false
+  aux_loss_coef: 0.0
+  adam_betas: [0.9, 0.95]
+  reward_clip_range: [-10, 10]
+  advantage_estimator: "gae"
+  no_advantage_std_norm: false
+  training_mode: "rl"
+  eos_token: null # for loss mask on overlong completions
+
+### Datasets
+packing_samples: true
+max_packed_length: null # null = unlimited (backward compatible), set to limit (e.g., 40000) to prevent OOM
+extra_eval_tasks: null
+extra_eval_dir: null
+
+verify_task: "math"
+verify_task_eval: "math"
+filter_samples_by_reward: false
+filter_agents_data: false
+
+prompt_data: null
+prompt_data_probs: "1.0"
+prompt_split: "train"
+pretrain_data: null
+pretrain_data_probs: "1.0"
+pretrain_split: "train"
+
+input_key: "input"
+label_key: "label"
+output_key: "output"
+metadata_key: "metadata"
+add_think_token: 0
+add_prompt_suffix: "\n\nPlease reason step by step, and put your final answer within \\boxed{}."
+input_template: null
+apply_chat_template: false
+
+### Logging
+# Wandb parameters
+use_wandb: null
+wandb_org: null
+wandb_group: null
+wandb_project: "marti_train_ppo"
+wandb_run_name: null
+
+# TensorBoard
+use_tensorboard: null
+perf: false

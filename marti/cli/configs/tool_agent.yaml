@@ -1,0 +1,33 @@
+# including default.yaml
+defaults:
+  - default
+  - _self_
+
+agent_workflow: "tool"
+agent_func_path: null
+default_agent:
+  eos_token: "<|im_end|>"
+
+chat_template: "Answer the given problem step by step. Please put your final answer within \\boxed{{}}. Question: {question}"
+
+tools_config:
+  max_turns: 4
+  num_workers: 128
+  enable_metrics: True
+  enable_rate_limiting: True
+  tools:
+    python:
+      type: sandbox_fusion
+      enable_rate_limiting: True
+      rate_limit: 64
+      timeout: 30
+      base_url: "http://127.0.0.1:8080/run_code"
+      schema_path: "examples/schema/code.json"
+    search:
+      type: search_r1
+      enable_rate_limiting: True
+      rate_limit: 64
+      timeout: 30
+      topk: 3
+      base_url: "http://127.0.0.1:8000/retrieval"
+      schema_path: "examples/schema/search.json"

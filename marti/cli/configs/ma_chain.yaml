@@ -1,0 +1,26 @@
+# including default.yaml
+defaults:
+  - default
+  - _self_
+
+agent_workflow: "chain-of-agents"
+
+workflow_args:
+  num_rounds: 3
+  template_id: 4
+
+chat_template: null
+agents:
+  - generator:
+      role: generator
+      chat_template:
+        - "$question\n\nPlease reason step by step, and put your final answer within \\boxed{}."
+  - verifier:
+      role: verifier
+      chat_template:
+        - "You are tasked with analyzing an answer to a problem and providing constructive feedback.\n\nProblem: $question\n\nSolution: $generator\n\nDo NOT provide direct solutions."
+      # training hyper-parameters
+  - refiner:
+      role: refiner
+      chat_template:
+        - "You are tasked with revising a draft solution to a problem based on the critique provided. Please provide a revised solution that addresses the feedback and improves the overall quality of the solution.\n\nProblem: $question\n\nSolution: $generator\n\nCritique: $verifier\n\nPlease reason step by step, and put your final answer within \\boxed{}."

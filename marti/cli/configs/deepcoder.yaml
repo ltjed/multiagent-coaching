@@ -1,0 +1,30 @@
+# including default.yaml
+defaults:
+  - default
+  - _self_
+
+agent_workflow: "tool"
+agent_func_path: null
+default_agent:
+  eos_token: "<|im_end|>"
+
+# prompt_template: "Answer the given question with tools and put the final answer inside <answer> and </answer>, without detailed illustrations. For example, <answer> Beijing </answer>. Question: {question}"
+# prompt_template: "Answer the following question using your internal knowledge if possible. Only use tools if the answer cannot be confidently derived from your knowledge. Put the final answer inside <answer> and </answer>, without any explanations. For example: <answer> Beijing </answer>.\nQuestion: {question}"
+
+# chat_template: "Answer the given question. You must conduct reasoning inside <think> and </think> first every time you get new information. After reasoning, if you find you lack some knowledge, you can call a search engine inside <tool_call> and </tool_call>, it will return the top searched results between <tool_response> and </tool_response>. You can search as many times as your want. If you find no further external knowledge needed, you can directly provide the answer inside <answer> and </answer>, without detailed illustrations. For example, <answer> Beijing </answer>. Question: {question}"
+chat_template: "{question}"
+
+tools_config:
+  max_turns: 1
+  num_workers: 128
+  enable_metrics: True
+  enable_rate_limiting: False
+
+# calculator
+
+# - class_name: verl.tools.search_tool.SearchTool
+#   config:
+#     retrieval_service_url: http://127.0.0.1:8000/retrieval
+#     num_workers: 120
+#     rate_limit: 120
+#     timeout: 30

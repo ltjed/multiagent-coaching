@@ -1,0 +1,25 @@
+# including default.yaml
+defaults:
+  - default
+  - _self_
+
+agent_workflow: "tool"
+agent_func_path: null
+default_agent:
+  eos_token: "<|im_end|>"
+
+# chat_template: "Answer the given question. You must conduct reasoning inside <think> and </think> first every time you get new information. After reasoning, if you find you lack some knowledge, you can call a search engine inside <tool_call> and </tool_call>, it will return the top searched results between <tool_response> and </tool_response>. You can search as many times as your want. If you find no further external knowledge needed, you can directly provide the answer inside <answer> and </answer>, without detailed illustrations. For example, <answer> Beijing </answer>. Question: {question}"
+
+# chat_template: "Answer the given math problem. You must conduct reasoning inside <think> and </think> first every time you get new information or need to solve a subproblem. After reasoning, if you find that a calculation or code is needed, you can use the code interpreter inside <tool_call> and </tool_call>; it will return the result between <tool_response> and </tool_response>. You can run as many code cells as needed. If you find no further computation is necessary, put your final answer within \\boxed{{}}. Question: {question}"
+
+chat_template: "You are a general AI assistant. I will ask you a question. Report your thoughts, and finish your answer with the following tags: <answer> [YOUR FINAL ANSWER] </answer>\n\nYOUR FINAL ANSWER should be a number OR as few words as possible OR a comma separated list of numbers and/or strings.\n\nIf you are asked for a number, don't use comma to write your number neither use units such as $ or percent sign unless specified otherwise.\nIf you are asked for a string, don't use articles, neither abbreviations (e.g. for cities), and write the digits in plain text unless specified otherwise.\nIf you are asked for a comma separated list, apply the above rules depending of whether the element to be put in the list is a number or a string.\n\nQuestion: Your final answer should be a number, or as few words as possible.\n{question}"
+
+tools_config:
+  max_turns: 30
+  num_workers: 32
+  max_concurrent_calls: 8
+  enable_metrics: True
+  enable_rate_limiting: True
+  rate_limit: 8
+  timeout: 300
+  mcp_url: "http://101.6.64.254:15555/mcp/"

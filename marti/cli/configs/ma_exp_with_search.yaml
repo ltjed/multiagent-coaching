@@ -1,0 +1,40 @@
+# including default.yaml
+defaults:
+  - default
+  - _self_
+
+agent_workflow: "chain-of-agents"
+async_workflow: false
+workflow_func_path: null
+processor_func_path: null
+default_agent:
+  eos_token: "<|im_end|>"
+
+workflow_args:
+  num_rounds: 4
+  memory_reward_style: "propagate"
+  log_save_path: null
+  max_length_mem: 4096
+  max_length_agent: 8196
+
+chat_template: null
+agents:
+  - generator:
+      role: generator
+      is_tuning: true
+      is_reasoning_model: false
+
+tools_config:
+  max_turns: 2
+  num_workers: 120
+  enable_metrics: True
+  enable_rate_limiting: True
+  tools:
+    search:
+      type: search_r1
+      enable_rate_limiting: True
+      rate_limit: 50
+      timeout: 30
+      topk: 3
+      base_url: "http://127.0.0.1:8000/retrieval"
+      schema_path: "examples/schema/search.json"

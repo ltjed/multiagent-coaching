@@ -1,0 +1,43 @@
+# including default.yaml
+defaults:
+  - default
+  - _self_
+
+agent_workflow: "chain-of-agents"
+async_workflow: false
+workflow_func_path: null
+processor_func_path: null
+
+workflow_args:
+  num_rounds: 1
+
+chat_template: null
+agents:
+  - agent_problem_solver:
+      role: agent_problem_solver
+      chat_template:
+        - "You are Agent Problem Solver, and your role is to collaborate with other agents to address various challenges.\nFor each problem, please follow these steps:\n    1. **Document Your Solution**: Write your solution step by step, ensuring it is independent of the solutions provided by other agents.\n    2. **Engage in Discussion**: Once you have outlined your solution, discuss your approach and findings with the other agents.\n\nProblem: $question\n\nPlease reason step by step, and put your final answer within \\boxed{}."
+  - agent_code_executor:
+      role: agent_code_executor
+      code_execution: true
+      chat_template:
+        - "You are Agent Code Executor. You can solve problems only writing commented Python code.\nFor each problem, please follow these steps:\n    1. **Develop Your Solution**: Write your solution in Python code, detailing each step independently from the solutions provided by other agents.\n    2. **Utilize SymPy**: Feel free to use the SymPy package to facilitate calculations and enhance your code's efficiency.\n    3. **Display Results**: Ensure that you **print the final result at the end of your Python code** (e.g., `print(_result_)`).\n    4. **Engage in Discussion**: After obtaining the result from your Python code, discuss your findings with the other agents.\nAlways format your Python code within:\n```python\n# your code here\nprint(_result_)\n```\n\nProblem: $question\n\nHere is the output from Agent Problem Solver:\n$agent_problem_solver"
+  - agent_verifier:
+      role: agent_verifier
+      chat_template:
+        - "You are Agent Verifier.\nYour role is to critically evaluate the solutions proposed by other agents step by step and provide a final solution.\n    1. **Solution Requirement**: Before making any decisions, ensure you have received solutions from both Agent Code Executor and Agent Problem Solver.\n    2. **Avoid Assumptions**: Pay attention to the variables provided in the original problem statement versus those assumed by the agents. **Assumed values are not valid for the solution** and can lead to inaccuracies. Never base your solution on assumed values. Always base your solution on the explicitly given variables to ensure correctness. If a problem is deemed unsolvable due to missing information, return: **SOLUTION_FOUND \\boxed{'None'}**.\n    3. **Evaluating Conflicting Solutions**: If different answers are presented during the discussion, choose the most appropriate solution based on your evidence or initiate further discussion to clarify.\n    4. **Final Solution Declaration**: When you are confident about the final solution, return it as follows: **SOLUTION_FOUND \\boxed{_solution_value_here_}**. Ensure that only numerical values are placed inside the \\boxed{}; any accompanying text should be outside.\n\nProblem: $question\n\nHere is the output from Agent Problem Solver:\n$agent_problem_solver\n\nHere is the output from Agent Code Executor:\n$agent_code_executor"
+
+tools_config:
+  max_turns: 2
+  num_workers: 128
+  enable_metrics: True
+  enable_rate_limiting: True
+  tools:
+    code_interpreter:
+      type: sandbox_fusion
+      enable_rate_limiting: True
+      rate_limit: 30
+      timeout: 30
+      base_url: "http://127.0.0.1:8080/run_code"
+      schema_path: "examples/schema/code.json"
+

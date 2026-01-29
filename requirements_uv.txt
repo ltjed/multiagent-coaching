@@ -1,0 +1,76 @@
+# Working UV Environment for MARTI MathChat Coach Training
+# This file reflects the actual tested working UV environment
+# Last verified: 2025-11-23 (Training successfully running)
+
+# ============================================================================
+# CRITICAL: These exact versions are required for training to work
+# Changing these versions may cause import errors or training failures
+# ============================================================================
+
+# Core Deep Learning Stack
+torch==2.6.0
+torchvision==0.21.0
+torchaudio==2.6.0
+transformers==4.52.1
+triton==3.2.0
+
+# Data Processing
+datasets==4.3.0
+pyarrow==22.0.0  # Updated from 21.0.0
+
+# LLM Inference & Acceleration
+vllm==0.8.5.post1
+flash-attn==2.7.3
+xformers==0.0.29.post2
+
+# Distributed Training
+deepspeed==0.16.8
+ray[default]==2.43.0
+accelerate==1.11.0
+
+# Configuration Management
+hydra-core==1.3.2
+antlr4-python3-runtime==4.9.3
+omegaconf==2.3.0
+
+# Tools & Protocol Support (MCP required for tool calling)
+json5==0.12.1
+mcp==1.20.0  # Updated from 1.19.0
+
+# LLM Observability
+weave==0.52.14
+
+# LLM API Clients (for external judge)
+openai==2.6.1
+python-dotenv==1.2.1
+google-genai>=1.0.0  # New Google Gen AI SDK (supports Vertex AI via vertexai=True)
+# NOTE: google-cloud-aiplatform is optional (deprecated vertexai module)
+# - anthropic: Uncomment if using Claude as coach
+
+# Utilities
+shortuuid==1.0.13
+class-registry==2.1.2
+srsly==2.5.1
+
+# Experiment Tracking
+wandb==0.22.3
+tensorboard==2.20.0
+
+# Math & Reasoning
+latex2sympy2==1.5.4
+treequest==0.2.0  # abmcts-m extras included
+sympy==1.13.1
+pylatexenc==2.10
+
+# ML Utilities
+peft==0.17.1
+numpy==2.2.6
+pandas==2.3.3
+scipy==1.16.3
+regex==2025.10.23
+sentencepiece==0.2.1
+
+# Development Tools
+pytest
+timeout-decorator==0.5.0
+word2number==1.1

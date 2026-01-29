@@ -1,0 +1,37 @@
+# including default.yaml
+defaults:
+  - default
+  - _self_
+
+agent_workflow: "chain-of-agents"
+async_workflow: false
+workflow_func_path: null
+processor_func_path: null
+default_agent:
+  eos_token: "<|im_end|>"
+
+workflow_args:
+  num_rounds: 4
+  memory_reward_style: "propagate"
+  log_save_path: null
+
+chat_template: null
+agents:
+  - generator:
+      role: generator
+      is_tuning: true
+      is_reasoning_model: false
+
+tools_config:
+  max_turns: 2
+  num_workers: 120
+  enable_metrics: True
+  enable_rate_limiting: True
+  tools:
+    code:
+      type: sandbox_fusion
+      enable_rate_limiting: True
+      rate_limit: 30
+      timeout: 30
+      base_url: "http://127.0.0.1:8080/run_code"
+      schema_path: "examples/schema/code.json"

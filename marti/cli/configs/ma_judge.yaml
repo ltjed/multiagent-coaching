@@ -1,0 +1,61 @@
+# including default.yaml
+defaults:
+  - default
+  - _self_
+
+agent_workflow: "judge_workflow"
+
+processor_func_path: "marti/worlds/workflows/debate_processor.py"
+workflow_func_path: "marti/worlds/workflows/judge_workflow.py"
+
+workflow_args:
+  judge_weight: 0.5
+  score_parser: "keywords"
+  label_separator: "||DIV REVIEW SCORE||"
+  judge_template: |
+    <|im_start|>user
+    You are an expert academic peer reviewer. You will be shown the abstract/content of a research paper and two peer reviews for that paper. Your task is to determine which peer review is of higher quality based on the following criteria:
+
+    1. **Factual Accuracy & Soundness:** Does the review accurately understand the paper's contributions and limitations? Is the critique based on sound reasoning?
+    2. **Completeness & Coverage:** Does the review address the core aspects of the paper (e.g., methodology, results, significance)?
+    3. **Level of Detail & Specificity:** Does the review provide specific examples and detailed comments rather than vague statements?
+    4. **Comparison with Existing Work:** Does the review appropriately contextualize the paper within the existing literature and compare it to relevant methods?
+    5. **Constructiveness:** Is the feedback helpful for the authors to improve the paper? Is the tone professional and constructive?
+    6. **Clarity & Organization:** Is the review well-structured and easy to understand?
+
+    Paper Context (Abstract/Content):
+    {prompt}
+
+    Review 1:
+    {generated_answer}
+
+    Review 2:
+    {label}
+
+    Which peer review is of higher quality based on the criteria above? Respond with EXACTLY one of these options:
+    - REVIEW_1_BETTER
+    - REVIEW_2_BETTER
+
+    YOU MUST CHOOSE A BETTER REVIEW. A TIE IS NOT ALLOWED.
+    <|im_end|>
+    <|im_start|>assistant
+
+# Review-specific overrides
+verify_task: "review_group"
+verify_task_eval: "review_group"
+input_key: "problem"
+label_key: "answer"
+add_think_token: 1
+add_prompt_suffix: ""
+prompt_max_len: 24000
+generate_max_len: 8000
+advantage_estimator: "reinforce"
+wandb_project: "MARTI-ReviewRL"
+
+agents:
+  - generator:
+      role: generator
+      is_tuning: true
+  - judge:
+      role: judge
+      is_tuning: false 

@@ -1,0 +1,52 @@
+# including default.yaml
+defaults:
+  - default
+  - _self_
+
+# input_template: "You are an expert Python programmer. You will be given a question (problem specification) and will generate a correct Python program that matches the specification and passes all tests.\n\n{}"
+# use_mcts: false
+agent_workflow: "mcts" # Use mcts workflow
+async_workflow: true
+workflow_func_path: null
+processor_func_path: null
+# add_prompt_suffix: "\n\nPlease reason step by step, and put your final answer within \\boxed{}."
+# add_system_prompt: "You are an expert mathematician solving math problem. These are challenging mathematics problems that require creative thinking and advanced problem-solving techniques."
+
+tools_config:
+  num_workers: 128
+  max_concurrent_calls: 8
+  enable_metrics: true
+  enable_rate_limiting: true
+  rate_limit: 8
+
+chat_template:
+  - "$question\n\nPlease reason step by step, and put your final answer within \\boxed{}."
+  - "Here are solutions from other agents:\n$responses_str\n\nUsing these responses as additional advice, can you give an updated bullet by bullet answer to the following question:\n$question\n\nPlease reason step by step, and put your final answer within \\boxed{}."
+agents:
+  - generator_1:
+      role: generator
+  # - generator_2:
+  #     role: generator
+
+workflow_args:
+# Debate workflow default configuration
+  async_mcts_batch: false
+  template_id: 1
+  # num_rounds: 1
+  # max_others: 5
+  # workflow_rollout_batch_size: 8
+  contain_self: true
+  shuffle_responses: true
+# ab-mcts workflow configuration
+  mcts_eval: False
+  prompt_version: null
+  max_num_nodes: 1 # Maximum number of expanded nodes in MCTS tree
+  eval_max_num_nodes: 8 # Maximum evaluation nodes in MCTS tree
+  save_path: ./outputs/ma-ab-mcts/${verify_task}
+  models:
+      name: "Qwen3-1.7B"
+      temperature: 1.0
+  algo:
+    class_name: "ABMCTSA"
+    params:
+      model_selection_strategy: "stack"

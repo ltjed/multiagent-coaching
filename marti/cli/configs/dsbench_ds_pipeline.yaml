@@ -1,0 +1,433 @@
+# DSBench MODELING Pipeline Configuration
+#
+# This config implements a 3-agent system for MODELING TASKS ONLY:
+# 1. Data Engineer: EDA + preprocessing + feature engineering
+# 2. Modeler: Algorithm selection + training + tuning
+# 3. Analyst: Prediction generation + format verification
+#
+# Dataset: 73 modeling tasks (after filtering 2 image-based) → 64 train + 8 eval
+# Stratified split: ~47% classification, ~53% regression in both train and eval
+# Each agent is evaluated by an external LLM coach (Gemini 2.5 Pro)
+#
+# Note: data_analysis tasks (416 questions) will be in separate pipeline
+#
+# Usage:
+#   python -m marti.cli.commands.train --config-name dsbench_ds_pipeline \
+#       default_agent.pretrain=/path/to/model \
+#       use_wandb=your_key
+
+defaults:
+  - default
+  - _self_
+
+# Workflow configuration
+agent_workflow: "chain-of-agents"
+async_workflow: true  # Required for tool support
+workflow_func_path: "marti/worlds/workflows/dsbench_workflow.py"
+processor_func_path: "marti/worlds/workflows/dsbench_processor.py"
+
+# Workflow parameters
+workflow_args:
+  # Multi-turn configuration (per-action coaching)
+  # DSBench is sequential: Data Engineer → Modeler → Analyst
+  # Each agent executes ONCE, but can take multiple actions during their turn
+  data_engineer_max_turns: 4   # EDA + preprocessing (reduced for speed)
+  modeler_max_turns: 4          # Training + tuning (reduced for speed)
+  analyst_max_turns: 4          # Prediction generation (reduced for speed)
+
+  # Ground truth evaluation configuration
+  enable_ground_truth_eval: true  # Enable ground truth metric computation
+                                  # When true: All relevant metrics (RMSE, MAE, Accuracy, F1, etc.)
+                                  # are computed and shown to coach for informed process evaluation.
+                                  # Training uses PROCESS reward ONLY (coach's 0-10 score).
+                                  # Metrics are logged for performance tracking.
+
+  # NOTE: Training uses PROCESS reward only (coach's 0-10 score)
+  # Outcome metrics are computed and logged but NOT used in reward computation.
+  # This allows the coach to see actual performance while evaluating process quality.
+
+  # Coach configuration
+  coach_model: "gemini-3-pro-preview"  # Gemini 3 Pro: 1M context, adaptive thinking
+  coach_type: "simple"
+  use_vertex_ai: true  # Vertex AI required for Gemini 3 Pro
+  vertex_project: null  # Set via env var VERTEX_PROJECT or command line
+  vertex_location: "global"  # Global endpoint required for Gemini 3 models
+  coach_max_output_tokens: null  # None=unlimited; thinking models handle their own token budget
+  coach_thinking_budget: null  # null=model decides, 0=disable thinking, positive=limit thinking tokens
+  # Note: Gemini 3 uses thinking_level (low/high) instead of thinking_budget
+
+  # Weave configuration (must be in workflow_args for Ray workers)
+  use_weave: false  # Disabled - was causing blocking with huge traces
+  weave_project: "marti-dsbench-coach"
+
+  # Coach prompt template for DSBench
+  coach_prompt_template: |
+    You are evaluating a specific agent in a multi-agent data science system that collaboratively solves data science tasks.
+    The system has 3 specialized agents working sequentially:
+
+    1. **Data Engineer**: Performs EDA, data cleaning, feature engineering
+       - MUST save: `X_train.pkl`, `y_train.pkl`, `X_test.pkl` (preprocessed test data is CRITICAL for Analyst)
+    2. **Modeler**: Selects algorithms, trains models, tunes hyperparameters
+       - MUST save: `model.pkl`
+    3. **Analyst**: Generates predictions, verifies format, creates submission
+       - MUST save: `submission.csv` (this is the FINAL DELIVERABLE)
+
+    **Current agent:**
+    {agent_name}
+
+    **Task that the overall system is solving:**
+    {problem}
+
+    **Role of the current agent:**
+    {agent_role}
+
+    **FILES AVAILABLE TO THIS AGENT (what they could load):**
+    {files_available}
+
+    **FILES SAVED BY PREVIOUS AGENTS:**
+    {files_from_previous_agents}
+
+    **Input to the current agent (what the agent saw before acting):**
+    {agent_input}
+
+    **Output from the current agent (what the agent decided to do):**
+    {agent_output}
+
+    **Environment feedback for the action that was taken:**
+    Result: {tool_observation}
+
+    **Ground truth evaluation results (computed metrics):**
+    {ground_truth_answer}
+
+    ## CRITICAL: OUTCOME-BASED ROOT CAUSE ANALYSIS
+
+    **If ground_truth_answer shows "ERROR: No predictions found" or similar failure:**
+    This means `submission.csv` was NOT created. This is a PIPELINE FAILURE.
+    You MUST perform root cause analysis using the information provided above:
+
+    1. **Check "FILES SAVED BY PREVIOUS AGENTS" above**:
+       - Did Data Engineer save X_test.pkl? (Look for it in the files list)
+       - Did Modeler save model.pkl? (Look for it in the files list)
+       - If these files are missing, the UPSTREAM AGENT is at fault!
+
+    2. **Check "tool_observation" for errors**:
+       - FileNotFoundError for `X_test.pkl` → Data Engineer's fault (didn't save test data)
+       - FileNotFoundError for `model.pkl` → Modeler's fault (didn't save model)
+       - KeyError, TypeError, AttributeError → Likely Analyst's own code bug
+       - No errors but no output → Analyst didn't write code to save submission.csv
+
+    3. **Assign blame to the responsible agent**:
+       - **Data Engineer's fault** if: `X_test.pkl` is NOT in "FILES SAVED BY PREVIOUS AGENTS"
+       - **Modeler's fault** if: `model.pkl` is NOT in "FILES SAVED BY PREVIOUS AGENTS"
+       - **Analyst's fault** if: Both files were available but Analyst's code is buggy
+
+    4. **Score the CURRENT agent based on their responsibility**:
+       - If this agent caused the downstream failure (didn't save required files) → score 0-2
+       - If this agent did their job but downstream failed → score based on their actual work quality
+       - If this agent failed due to UPSTREAM missing files → score 3-5 (partial credit for trying)
+
+    ## CRITICAL: File Dependency Chain
+
+    The agents MUST follow this dependency chain:
+    ```
+    Data Engineer saves: X_train.pkl, y_train.pkl, X_test.pkl, scaler.pkl
+                                  ↓
+    Modeler loads: X_train.pkl, y_train.pkl → saves: model.pkl
+                                  ↓
+    Analyst loads: X_test.pkl, model.pkl → saves: submission.csv
+    ```
+
+    **KEY INSIGHT**: If Data Engineer does NOT save `X_test.pkl`, the Analyst CANNOT create `submission.csv`.
+    This is Data Engineer's fault, not Analyst's fault.
+
+    ## Expected Agent Outputs
+
+    Each agent MUST produce executable Python code (in ```python``` code blocks) that creates specific artifacts:
+
+    **Data Engineer** must save to filesystem:
+    - `X_train.pkl` - preprocessed training features (REQUIRED)
+    - `y_train.pkl` - training labels (REQUIRED)
+    - `X_test.pkl` - preprocessed TEST features (CRITICAL - Analyst needs this!)
+    - Fitted transformers (e.g., `scaler.pkl`, `encoder.pkl`)
+    - Print a summary of ALL saved files
+
+    **Modeler** must save to filesystem:
+    - Trained model file: `model.pkl` (REQUIRED)
+    - Print model performance metrics from cross-validation
+
+    **Analyst** must save to filesystem:
+    - Submission file: `submission.csv` (REQUIRED - FINAL DELIVERABLE)
+    - Format: id column + prediction column(s) as specified in task
+    - Print confirmation that submission.csv was created with row count
+
+    **IMPORTANT**: If an agent outputs text descriptions, explanations, or just filenames WITHOUT executable Python code that actually creates the files, this is a CRITICAL FAILURE (score 0-2).
+
+    ## Evaluation Guidelines
+
+    Evaluate the agent's PROCESS quality based on:
+    - Did the agent output executable Python code in ```python``` blocks?
+    - Did the code actually EXECUTE SUCCESSFULLY (check tool_observation for errors)?
+    - Did the code save ALL required artifacts to the filesystem?
+    - Did the agent check which files are available before trying to load them?
+    - For Data Engineer: Did they save X_test.pkl? This is critical!
+    - For Modeler: Did they save model.pkl? Is algorithm choice reasonable?
+    - For Analyst: Did they create submission.csv? Did they handle potential missing files?
+
+    ## Scoring Guidelines (Base Process Scores)
+
+    **IMPORTANT: Score 10 is EXCEPTIONAL - reserved for going above and beyond expectations.**
+    Doing exactly what is required correctly = max score 8-9, NOT 10.
+    Score 10 requires: innovative solutions, handling edge cases proactively, excellent error recovery, etc.
+
+    **Score 10**: EXCEPTIONAL - Agent exceeded expectations (innovative approach, proactive error handling, elegant solution)
+    **Score 8-9**: Agent's code executed successfully, all required files were saved, methodology is sound
+    **Score 6-7**: Agent's code executed, most files saved, minor issues or suboptimal methodology
+    **Score 4-5**: Agent tried but code had errors, or missing important outputs
+    **Score 2-3**: Agent's code crashed due to upstream failures OR fundamentally flawed approach
+    **Score 0-1**: Agent produced no useful output or completely wrong code
+
+    **For Data Engineer and Modeler**: Use these scores as-is (no ground truth metrics available).
+    **For Analyst**: You MUST apply the outcome-based caps below. These caps are MANDATORY.
+
+    ## Using Ground Truth Metrics (ALL AGENTS) - CRITICAL FOR SCORING
+
+    **IMPORTANT: The final outcome affects ALL agents in the pipeline, not just the one at fault.**
+    Even if an agent's process was correct, if the overall pipeline produces a poor result,
+    ALL agents share some responsibility for the collective failure.
+
+    If ground truth metrics are provided, you MUST apply these HARD CAPS to the Analyst's score:
+
+    **Classification Tasks - MANDATORY Score Caps:**
+    | Metric Range | Quality | HARD CAP |
+    |--------------|---------|----------|
+    | ROC-AUC ≥ 0.85 or Accuracy ≥ 85% | Excellent | Max 9 (10 only if exceptional) |
+    | ROC-AUC 0.75-0.85 or Accuracy 75-85% | Good | Max 8 |
+    | ROC-AUC 0.65-0.75 or Accuracy 65-75% | Mediocre | Max 6 |
+    | ROC-AUC 0.55-0.65 or Accuracy 55-65% | Poor | Max 4 |
+    | ROC-AUC < 0.55 or Accuracy < 55% | Very Poor (near random) | Max 3 |
+
+    **For upstream agents (Data Engineer, Modeler) when outcome is known to be poor:**
+    - If the Analyst reports poor metrics due to upstream issues, penalize the responsible upstream agent
+    - Modeler that produces a near-random model (ROC-AUC ~0.5) = Max score 5, even if they saved model.pkl
+    - Data Engineer whose preprocessing led to poor features = Max score 6
+
+    **Regression Tasks - Interpreting RMSE/MAE:**
+    The ground truth output includes "RMSE as % of range" - USE THIS DIRECTLY:
+    - RMSE <10% of range = Excellent (max 9)
+    - RMSE 10-25% of range = Good (max 8)
+    - RMSE 25-50% of range = Mediocre (max 6)
+    - RMSE >50% of range = Poor (max 4)
+
+    Also check "RMSE as % of IQR" (interquartile range) which is more robust to outliers:
+    - If RMSE % of IQR is much higher than % of range, the target has outliers
+    - Use % of IQR for more accurate assessment in such cases
+
+    **Task Difficulty Considerations:**
+    Some tasks are inherently harder. Apply your ML knowledge:
+    - Imbalanced classification: F1 is more important than accuracy
+    - Time series forecasting: Higher RMSE may be acceptable
+    - Noisy real-world data: 70% accuracy might be good
+    - Clean synthetic data: 90% accuracy should be achievable
+
+    **CRITICAL: Outcome-Based Accountability (Default Caps)**
+    When outcome is poor, apply the HARD CAP by default UNLESS you are EXTREMELY CONFIDENT
+    that the current agent is NOT at fault. The burden of proof is high:
+
+    **Apply the cap (default)** when:
+    - It's unclear whose fault the poor outcome is
+    - Multiple agents could have contributed to the failure
+    - The root cause analysis is ambiguous
+
+    **Exception - Allow higher score (up to 8, never 10)** ONLY when ALL of these are true:
+    - You have CLEAR EVIDENCE of upstream failure (e.g., Modeler saved unfitted model, Data Engineer missing X_test.pkl)
+    - The current agent had NO reasonable way to fix the upstream issue
+    - The current agent's own process was genuinely correct given their inputs
+    - Example: Analyst got 54% ROC-AUC, but model.pkl was clearly unfitted (NotFittedError in logs) → Can score 6-7
+
+    **When in doubt, apply the cap.** It's better to be conservative.
+
+    **Example Score Adjustments:**
+    - Perfect process + 85% accuracy = Score 9
+    - Perfect process + 78% accuracy = Score 8 (good outcome)
+    - Perfect process + 65% accuracy = Score 6 (mediocre outcome caps score)
+    - Perfect process + 54% accuracy, unclear fault = Score 3 (hard cap)
+    - Perfect process + 54% accuracy, CLEAR upstream fault = Score 6-7 (exception)
+    - Buggy process + 75% accuracy = Score 6 (process issues reduce score)
+
+    ## Output Format
+
+    First, provide a brief analysis (3-5 sentences) that MUST include:
+    1. **Files check**: List the files that were available to this agent (from "FILES AVAILABLE TO THIS AGENT")
+    2. **Execution result**: Did the agent's code execute successfully? (check tool_observation for errors)
+    3. **Output verification**: What files did this agent save? (if any mentioned in tool_observation)
+    4. **Blame assignment** (if failure): If submission.csv was not created, explicitly state which agent is responsible based on missing files
+
+    Example analysis for failed Analyst:
+    "Files available: train.csv, test.csv, X_train.pkl, y_train.pkl (NOTE: X_test.pkl is MISSING).
+    The Analyst's code crashed with FileNotFoundError for 'X_test.pkl'.
+    This is DATA ENGINEER's fault - they did not save X_test.pkl which the Analyst needs.
+    The Analyst cannot be fully blamed since the required input file was not provided."
+
+    Then provide your score:
+    PROCESS_SCORE: [0 to 10]
+
+# Tool configuration
+tools_config:
+  num_workers: 16  # Concurrent tool execution workers
+  enable_metrics: true
+  enable_rate_limiting: true
+
+  tools:
+    code_interpreter:
+      type: sandbox_fusion
+      enable_rate_limiting: true
+      rate_limit: 30  # Max 30 calls per 30 seconds
+      timeout: 60  # Longer timeout for model training
+      base_url: "http://127.0.0.1:8080/run_code"
+      schema_path: "examples/schema/code.json"
+
+# Agent configuration
+agents:
+  - agent_data_engineer:
+      role: agent_data_engineer
+      is_tuning: true
+      is_reasoning_model: true
+
+  - agent_modeler:
+      role: agent_modeler
+      is_tuning: true
+      is_reasoning_model: true
+
+  - agent_analyst:
+      role: agent_analyst
+      is_tuning: true
+      is_reasoning_model: true
+
+# Shared agent settings
+shared_agents: false  # 3 independent agents (can set to true to share model)
+parallel_loading: true
+
+# Dataset configuration
+verify_task: "dsbench"  # Data science modeling tasks
+verify_task_eval: "dsbench"
+packing_samples: true
+mask_truncated_completions: true
+
+# Data paths (generated by prepare_dsbench_data.py)
+prompt_data: "data/Bench/dsbench_modeling_train.json"  # 64 modeling tasks
+input_key: "prompt"
+label_key: "answer"
+metadata_key: "metadata"  # Extract task metadata (train_file, test_file, etc.)
+apply_chat_template: false  # Async workflows handle prompt formatting
+
+# Evaluation datasets
+extra_eval_tasks: ["dsbench_modeling_eval"]  # 28 modeling tasks (held-out)
+extra_eval_dir: "data/Bench"
+
+# Default agent parameters
+default_agent:
+  # ============================================================================
+  # Model configuration
+  # ============================================================================
+  role: "base"
+  is_reasoning_model: true  # Use thinking models (Qwen3-4B-Thinking, etc.)
+  is_tuning: true
+  pretrain: null  # Must specify via command line
+
+  # ============================================================================
+  # vLLM inference engine configuration
+  # ============================================================================
+  vllm_num_engines: 4
+  vllm_tensor_parallel_size: 1
+  vllm_gpu_memory_utilization: 0.6
+  vllm_enable_sleep: true
+  vllm_sync_backend: "nccl"
+
+  # ============================================================================
+  # GPU resource allocation
+  # ============================================================================
+  ref_num_nodes: 1
+  ref_num_gpus_per_node: 2
+  actor_num_nodes: 1
+  actor_num_gpus_per_node: 2
+  critic_num_nodes: 1
+  critic_num_gpus_per_node: 2
+  colocate_all_models: true
+
+  # ============================================================================
+  # Training hyperparameters
+  # ============================================================================
+  advantage_estimator: "reinforce_plus_plus"  # REINFORCE++ for stable training
+  num_episodes: 30
+  n_samples_per_prompt: 1  # REINFORCE++ works with 1 sample
+  rollout_batch_size: 16  # Match MathChat batch size
+  micro_rollout_batch_size: 2  # Reduced for memory (packed tensors ~50K tokens)
+  train_batch_size: 16
+  micro_train_batch_size: 1  # Set to 1 for 24K context (safest for memory)
+  max_epochs: 1
+
+  # ============================================================================
+  # Stratified Sampling (DSBench-specific)
+  # ============================================================================
+  # Maintains classification vs regression task proportions within each batch
+  # Ensures balanced training signal across task types
+  # MathChat is unaffected: falls back to random sampling when data_type not in metadata
+  stratified_sampling: true
+  stratify_key: "data_type"  # metadata field to stratify on (classification/regression)
+
+  # ============================================================================
+  # Generation settings
+  # ============================================================================
+  prompt_max_len: 24576  # 24K for sequential agent outputs (Data Engineer → Modeler → Analyst)
+  generate_max_len: 8192  # 8K for long code generation and preprocessing steps
+  temperature: 1.0
+  eval_temperature: 0.6
+  top_p: 1.0
+
+  # ============================================================================
+  # Optimization settings
+  # ============================================================================
+  actor_learning_rate: 1.0e-6
+  critic_learning_rate: 9.0e-6
+  zero_stage: 3
+  bf16: true
+  adam_offload: true
+  gradient_checkpointing: true
+  normalize_reward: true
+
+  # ============================================================================
+  # KL divergence settings
+  # ============================================================================
+  init_kl_coef: 0.01
+  use_kl_loss: false  # REINFORCE++ uses KL in advantages, not loss
+  use_kl_estimator_k3: false
+
+  # ============================================================================
+  # Checkpointing
+  # ============================================================================
+  save_steps: 4  # Save every 4 steps = 1 epoch (64 tasks ÷ 16 batch = 4 steps/epoch)
+                 # With num_episodes=5, saves 5 checkpoints total (steps 4, 8, 12, 16, 20)
+  eval_steps: 2  # Evaluate every 2 steps = 0.5 epochs
+                 # With num_episodes=5, evaluates 11 times (steps 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20)
+  logging_steps: 1
+  max_ckpt_num: 10  # Keep last 10 checkpoints
+  max_samples: 400000  # Max training samples
+
+  # ============================================================================
+  # Evaluation settings
+  # ============================================================================
+  n_eval_samples_per_prompt: 1  # Number of samples per eval prompt (multiplied by vllm_num_engines)
+  eval_aggregation: "mean"  # How to aggregate multiple eval results: "mean", "majority_vote", "pass@k"
+
+  save_path: "./outputs/dsbench_modeling"
+  ckpt_path: "./checkpoints/dsbench_modeling"
+
+# Logging
+use_wandb: null  # Set Wandb API key via command line
+wandb_project: "MARTI-DSBench-Modeling"
+wandb_run_name: null
+use_tensorboard: "./logs/dsbench_modeling"
+
+# Weave tracking (LLM observability)
+use_weave: true
+weave_project: "marti-dsbench-modeling-coach"

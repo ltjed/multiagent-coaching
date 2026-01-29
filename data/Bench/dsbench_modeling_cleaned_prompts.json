@@ -1,0 +1,506 @@
+{
+  "bike-sharing-demand": {
+    "cleaned_prompt": "Task: Predict hourly bike rental demand.\n\nEvaluation: Root Mean Squared Logarithmic Error (RMSLE) - lower is better.\n\nSubmission Format:\ndatetime,count\n2011-01-20 00:00:00,0\n2011-01-20 01:00:00,0\n\nDataset:\n- Training set: first 19 days of each month\n- Test set: 20th to end of month\n- Predict total bike rentals for each hour\n\nData Fields:\n- datetime: hourly date + timestamp\n- season: 1=spring, 2=summer, 3=fall, 4=winter\n- holiday: whether the day is a holiday\n- workingday: whether the day is neither weekend nor holiday\n- weather: 1=Clear, 2=Mist, 3=Light Snow/Rain, 4=Heavy Rain/Snow\n- temp: temperature in Celsius\n- atemp: feels like temperature in Celsius\n- humidity: relative humidity\n- windspeed: wind speed\n- casual: non-registered user rentals (train only)\n- registered: registered user rentals (train only)\n- count: total rentals (TARGET)",
+    "metric": "rmsle",
+    "task_type": "regression",
+    "target_column": "count",
+    "id_column": "datetime"
+  },
+  "cat-in-the-dat": {
+    "cleaned_prompt": "Task: Binary classification with categorical features only.\n\nEvaluation: Area Under ROC Curve (AUC-ROC) - higher is better.\n\nSubmission Format:\nid,target\n300000,0.5\n300001,0.5\n(predict probability between 0 and 1)\n\nDataset:\n- Binary features: bin_* columns\n- Nominal features: nom_* columns (low and high cardinality)\n- Ordinal features: ord_* columns (ord_3 to ord_5 are lexically ordered)\n- Temporal features: day (of week), month\n- No missing values in this dataset\n\nFiles:\n- train.csv: training data\n- test.csv: test data for predictions",
+    "metric": "roc_auc",
+    "task_type": "classification",
+    "target_column": "target",
+    "id_column": "id"
+  },
+  "cat-in-the-dat-ii": {
+    "cleaned_prompt": "Task: Binary classification with categorical features (version with missing data and feature interactions).\n\nEvaluation: Area Under ROC Curve (AUC-ROC) - higher is better.\n\nSubmission Format:\nid,target\n600000,0.5\n600001,0.5\n(predict probability between 0 and 1)\n\nDataset:\n- Binary features: bin_* columns\n- Nominal features: nom_* columns (low and high cardinality)\n- Ordinal features: ord_* columns\n- Temporal features: day (of week), month\n- This dataset HAS missing values\n- This dataset HAS feature interactions\n\nFiles:\n- train.csv: training data\n- test.csv: test data for predictions",
+    "metric": "roc_auc",
+    "task_type": "classification",
+    "target_column": "target",
+    "id_column": "id"
+  },
+  "covid19-global-forecasting-week-1": {
+    "cleaned_prompt": "Task: Predict cumulative COVID-19 confirmed cases and fatalities by region.\n\nEvaluation: Root Mean Squared Logarithmic Error (RMSLE), averaged over both target columns - lower is better.\n\nSubmission Format:\nForecastId,ConfirmedCases,Fatalities\n1,10,0\n2,10,0\n\nDataset:\n- Predict cumulative confirmed cases and fatalities for various world regions\n- Predictions should be cumulative counts\n\nFiles:\n- train.csv: training data\n- test.csv: test data with ForecastId, date, and location",
+    "metric": "rmsle",
+    "task_type": "regression",
+    "target_column": ["ConfirmedCases", "Fatalities"],
+    "id_column": "ForecastId"
+  },
+  "covid19-global-forecasting-week-2": {
+    "cleaned_prompt": "Task: Predict cumulative COVID-19 confirmed cases and fatalities by region.\n\nEvaluation: Root Mean Squared Logarithmic Error (RMSLE), averaged over both target columns - lower is better.\n\nSubmission Format:\nForecastId,ConfirmedCases,Fatalities\n1,10,0\n2,10,0\n\nDataset:\n- Predict cumulative confirmed cases and fatalities for various world regions\n- Predictions should be cumulative counts\n\nFiles:\n- train.csv: training data\n- test.csv: test data with ForecastId, date, and location",
+    "metric": "rmsle",
+    "task_type": "regression",
+    "target_column": ["ConfirmedCases", "Fatalities"],
+    "id_column": "ForecastId"
+  },
+  "covid19-global-forecasting-week-3": {
+    "cleaned_prompt": "Task: Predict cumulative COVID-19 confirmed cases and fatalities by region.\n\nEvaluation: Root Mean Squared Logarithmic Error (RMSLE), averaged over both target columns - lower is better.\n\nSubmission Format:\nForecastId,ConfirmedCases,Fatalities\n1,10,0\n2,10,0\n\nDataset:\n- Predict cumulative confirmed cases and fatalities for various world regions\n- Predictions should be cumulative counts\n\nFiles:\n- train.csv: training data\n- test.csv: test data with ForecastId, date, and location",
+    "metric": "rmsle",
+    "task_type": "regression",
+    "target_column": ["ConfirmedCases", "Fatalities"],
+    "id_column": "ForecastId"
+  },
+  "covid19-global-forecasting-week-4": {
+    "cleaned_prompt": "Task: Predict cumulative COVID-19 confirmed cases and fatalities by region.\n\nEvaluation: Root Mean Squared Logarithmic Error (RMSLE), averaged over both target columns - lower is better.\n\nSubmission Format:\nForecastId,ConfirmedCases,Fatalities\n1,10,0\n2,10,0\n\nDataset:\n- Predict cumulative confirmed cases and fatalities for various world regions\n- Predictions should be cumulative counts\n\nFiles:\n- train.csv: training data\n- test.csv: test data with ForecastId, date, and location",
+    "metric": "rmsle",
+    "task_type": "regression",
+    "target_column": ["ConfirmedCases", "Fatalities"],
+    "id_column": "ForecastId"
+  },
+  "demand-forecasting-kernels-only": {
+    "cleaned_prompt": "Task: Predict 3 months of item-level sales data at different store locations.\n\nEvaluation: Symmetric Mean Absolute Percentage Error (SMAPE) - lower is better. SMAPE = 0 when actual and predicted are both 0.\n\nSubmission Format:\nid,sales\n0,35\n1,22\n2,5\n\nDataset:\n- 5 years of store-item sales data\n- 50 different items at 10 different stores\n- Time series forecasting task\n\nData Fields:\n- date: Date of the sale (no holiday effects or store closures)\n- store: Store ID\n- item: Item ID\n- sales: Number of items sold (TARGET)\n\nFiles:\n- train.csv: Training data\n- test.csv: Test data (Public/Private split is time based)",
+    "metric": "smape",
+    "task_type": "regression",
+    "target_column": "sales",
+    "id_column": "id"
+  },
+  "dont-overfit-ii": {
+    "cleaned_prompt": "Task: Binary classification with minimal training samples (250 rows) and many features (300 continuous variables).\n\nEvaluation: Area Under ROC Curve (AUC-ROC) - higher is better.\n\nSubmission Format:\nid,target\n300,0.5\n301,0.5\n(predict probability between 0 and 1)\n\nDataset:\n- 250 training samples, 19,750 test samples\n- 300 continuous feature columns (0-299)\n- Binary target of mysterious origin\n- Challenge: avoid overfitting with minimal training data\n\nFiles:\n- train.csv: training set (250 rows)\n- test.csv: test set (19,750 rows)",
+    "metric": "roc_auc",
+    "task_type": "classification",
+    "target_column": "target",
+    "id_column": "id"
+  },
+  "feedback-prize-english-language-learning": {
+    "cleaned_prompt": "Task: Predict language proficiency scores for English Language Learner essays across 6 analytic measures.\n\nEvaluation: Mean Columnwise Root Mean Squared Error (MCRMSE) - lower is better.\n\nSubmission Format:\ntext_id,cohesion,syntax,vocabulary,phraseology,grammar,conventions\n0000C359D63E,3.0,3.0,3.0,3.0,3.0,3.0\n\nDataset:\n- Essays written by 8th-12th grade English Language Learners\n- 6 target measures: cohesion, syntax, vocabulary, phraseology, grammar, conventions\n- Scores range from 1.0 to 5.0 in increments of 0.5\n\nFiles:\n- train.csv: full_text, text_id, and 6 analytic measure scores\n- test.csv: full_text and text_id only",
+    "metric": "mcrmse",
+    "task_type": "regression",
+    "target_column": ["cohesion", "syntax", "vocabulary", "phraseology", "grammar", "conventions"],
+    "id_column": "text_id"
+  },
+  "instant-gratification": {
+    "cleaned_prompt": "Task: Binary classification on anonymized dataset.\n\nEvaluation: Area Under ROC Curve (AUC-ROC) - higher is better.\n\nSubmission Format:\nid,target\nba88c155ba898fc8b5099893036ef205,0.5\n7cbab5cea99169139e7e6d8ff74ebb77,0.5\n(predict probability between 0 and 1)\n\nDataset:\n- Anonymized binary classification dataset\n- Various features with silly column names\n\nFiles:\n- train.csv: training set\n- test.csv: test set (predict target)",
+    "metric": "roc_auc",
+    "task_type": "classification",
+    "target_column": "target",
+    "id_column": "id"
+  },
+  "lmsys-chatbot-arena": {
+    "cleaned_prompt": "Task: Predict which LLM response a user will prefer in head-to-head comparisons.\n\nEvaluation: Log Loss - lower is better.\n\nSubmission Format:\nid,winner_model_a,winner_model_b,winner_tie\n136060,0.33,0.33,0.33\n211333,0.33,0.33,0.33\n(predict probability for each outcome)\n\nDataset:\n- User interactions from ChatBot Arena\n- Each row: user prompt, two LLM responses, judge's preference\n- Predict likelihood that model_a wins, model_b wins, or tie\n\nData Fields:\n- id: unique identifier\n- prompt: input given to both models\n- response_a, response_b: responses from the two models\n- winner_model_a, winner_model_b, winner_tie: binary labels (train only)\n\nFiles:\n- train.csv: training data (~55K rows)\n- test.csv: test data (~25K rows)",
+    "metric": "log_loss",
+    "task_type": "classification",
+    "target_column": ["winner_model_a", "winner_model_b", "winner_tie"],
+    "id_column": "id"
+  },
+  "microsoft-malware-prediction": {
+    "cleaned_prompt": "Task: Predict probability that a Windows machine will be infected by malware.\n\nEvaluation: Area Under ROC Curve (AUC-ROC) - higher is better.\n\nSubmission Format:\nMachineIdentifier,HasDetections\n1,0.5\n6,0.5\n\nDataset:\n- Telemetry data from Windows Defender endpoint protection\n- Each row corresponds to a unique machine\n- HasDetections indicates if malware was detected (binary target)\n- Features include: ProductName, EngineVersion, AppVersion, HasTpm, CountryIdentifier, Platform, Processor, OsVer, and many Census_* features\n- Values of -1 indicate missing features\n\nFiles:\n- train.csv: training data with HasDetections column\n- test.csv: test data",
+    "metric": "roc_auc",
+    "task_type": "classification",
+    "target_column": "HasDetections",
+    "id_column": "MachineIdentifier"
+  },
+  "playground-series-s3e1": {
+    "cleaned_prompt": "Task: Predict median house value (regression on California Housing data).\n\nEvaluation: Root Mean Squared Error (RMSE) - lower is better.\n\nSubmission Format:\nid,MedHouseVal\n37137,2.01\n37138,0.92\n\nDataset:\n- Synthetic data generated from California Housing Dataset\n- MedHouseVal is the target (median house value)\n\nFiles:\n- train.csv: training dataset\n- test.csv: test dataset",
+    "metric": "rmse",
+    "task_type": "regression",
+    "target_column": "MedHouseVal",
+    "id_column": "id"
+  },
+  "playground-series-s3e3": {
+    "cleaned_prompt": "Task: Predict employee attrition probability.\n\nEvaluation: Area Under ROC Curve (AUC-ROC) - higher is better.\n\nSubmission Format:\nEmployeeNumber,Attrition\n1677,0.78\n1678,0.34\n(predict probability between 0 and 1)\n\nDataset:\n- Synthetic data from Employee Attrition dataset\n- Attrition is the binary target\n\nFiles:\n- train.csv: training dataset\n- test.csv: test dataset",
+    "metric": "roc_auc",
+    "task_type": "classification",
+    "target_column": "Attrition",
+    "id_column": "EmployeeNumber"
+  },
+  "playground-series-s3e5": {
+    "cleaned_prompt": "Task: Predict wine quality (ordinal classification).\n\nEvaluation: Quadratic Weighted Kappa - higher is better (measures agreement).\n\nSubmission Format:\nId,quality\n2056,5\n2057,7\n\nDataset:\n- Synthetic data from Wine Quality dataset\n- quality is the target (ordinal integer)\n\nFiles:\n- train.csv: training dataset\n- test.csv: test dataset",
+    "metric": "quadratic_weighted_kappa",
+    "task_type": "classification",
+    "target_column": "quality",
+    "id_column": "Id"
+  },
+  "playground-series-s3e6": {
+    "cleaned_prompt": "Task: Predict Paris housing prices.\n\nEvaluation: Root Mean Squared Error (RMSE) - lower is better.\n\nSubmission Format:\nid,price\n22709,200689.01\n22710,398870.92\n\nDataset:\n- Synthetic data from Paris Housing Price Prediction\n- price is the target\n\nFiles:\n- train.csv: training dataset\n- test.csv: test dataset",
+    "metric": "rmse",
+    "task_type": "regression",
+    "target_column": "price",
+    "id_column": "id"
+  },
+  "playground-series-s3e7": {
+    "cleaned_prompt": "Task: Predict hotel reservation cancellation.\n\nEvaluation: Area Under ROC Curve (AUC-ROC) - higher is better.\n\nSubmission Format:\nid,booking_status\n42100,0\n42101,1\n\nDataset:\n- Synthetic data from Reservation Cancellation Prediction\n- booking_status is the target (whether reservation was cancelled)\n\nFiles:\n- train.csv: training dataset\n- test.csv: test dataset",
+    "metric": "roc_auc",
+    "task_type": "classification",
+    "target_column": "booking_status",
+    "id_column": "id"
+  },
+  "playground-series-s3e8": {
+    "cleaned_prompt": "Task: Predict gemstone prices.\n\nEvaluation: Root Mean Squared Error (RMSE) - lower is better.\n\nSubmission Format:\nid,price\n193573,3969.155\n193574,8512.67\n\nDataset:\n- Synthetic data from Gemstone Price Prediction dataset\n- price is the target\n\nFiles:\n- train.csv: training dataset\n- test.csv: test dataset",
+    "metric": "rmse",
+    "task_type": "regression",
+    "target_column": "price",
+    "id_column": "id"
+  },
+  "playground-series-s3e9": {
+    "cleaned_prompt": "Task: Predict concrete strength.\n\nEvaluation: Root Mean Squared Error (RMSE) - lower is better.\n\nSubmission Format:\nid,Strength\n5439,55.2\n5440,12.3\n\nDataset:\n- Synthetic data from Concrete Strength Prediction dataset\n- Strength is the target\n\nFiles:\n- train.csv: training dataset\n- test.csv: test dataset",
+    "metric": "rmse",
+    "task_type": "regression",
+    "target_column": "Strength",
+    "id_column": "id"
+  },
+  "playground-series-s3e10": {
+    "cleaned_prompt": "Task: Predict whether observation is a pulsar (binary classification).\n\nEvaluation: Log Loss - lower is better.\n\nSubmission Format:\nid,Class\n117564,0.11\n117565,0.32\n(predict probability)\n\nDataset:\n- Synthetic data from Pulsar Classification dataset\n- Class is the binary target (1 = pulsar)\n\nFiles:\n- train.csv: training dataset\n- test.csv: test dataset",
+    "metric": "log_loss",
+    "task_type": "classification",
+    "target_column": "Class",
+    "id_column": "id"
+  },
+  "playground-series-s3e11": {
+    "cleaned_prompt": "Task: Predict media campaign cost.\n\nEvaluation: Root Mean Squared Log Error (RMSLE) - lower is better.\n\nSubmission Format:\nid,cost\n360336,99.615\n360337,87.203\n\nDataset:\n- Synthetic data from Media Campaign Cost Prediction dataset\n- cost is the target\n\nFiles:\n- train.csv: training dataset\n- test.csv: test dataset",
+    "metric": "rmsle",
+    "task_type": "regression",
+    "target_column": "cost",
+    "id_column": "id"
+  },
+  "playground-series-s3e12": {
+    "cleaned_prompt": "Task: Predict kidney stone presence probability.\n\nEvaluation: Area Under ROC Curve (AUC-ROC) - higher is better.\n\nSubmission Format:\nid,target\n414,0.5\n415,0.1\n(predict probability)\n\nDataset:\n- Synthetic data from Kidney Stone Prediction based on Urine Analysis\n- target is the likelihood of kidney stone presence\n\nFiles:\n- train.csv: training dataset\n- test.csv: test dataset",
+    "metric": "roc_auc",
+    "task_type": "classification",
+    "target_column": "target",
+    "id_column": "id"
+  },
+  "playground-series-s3e13": {
+    "cleaned_prompt": "Task: Predict vector-borne disease prognosis (multi-class classification with up to 3 predictions).\n\nEvaluation: Mean Precision at 3 (MPA@3) - earlier correct predictions score higher.\n\nSubmission Format:\nid,prognosis\n707,Dengue West_Nile_fever Malaria\n708,Lyme_disease West_Nile_fever Dengue\n(up to 3 predictions separated by spaces)\n\nDataset:\n- Synthetic data from Vector Borne Disease Prediction dataset\n- prognosis is the target (disease name with underscores instead of spaces)\n\nFiles:\n- train.csv: training dataset\n- test.csv: test dataset",
+    "metric": "map_at_3",
+    "task_type": "classification",
+    "target_column": "prognosis",
+    "id_column": "id"
+  },
+  "playground-series-s3e14": {
+    "cleaned_prompt": "Task: Predict wild blueberry yield.\n\nEvaluation: Mean Absolute Error (MAE) - lower is better.\n\nSubmission Format:\nid,yield\n15289,6025.194\n15290,1256.223\n\nDataset:\n- Synthetic data from Wild Blueberry Yield Prediction Dataset\n- yield is the target\n\nFiles:\n- train.csv: training dataset\n- test.csv: test dataset",
+    "metric": "mae",
+    "task_type": "regression",
+    "target_column": "yield",
+    "id_column": "id"
+  },
+  "playground-series-s3e16": {
+    "cleaned_prompt": "Task: Predict crab age.\n\nEvaluation: Mean Absolute Error (MAE) - lower is better.\n\nSubmission Format:\nid,Age\n74051,10.2\n74052,3.6\n\nDataset:\n- Synthetic data from Crab Age Prediction dataset\n- Age is the target (integer but can predict float)\n\nFiles:\n- train.csv: training dataset\n- test.csv: test dataset",
+    "metric": "mae",
+    "task_type": "regression",
+    "target_column": "Age",
+    "id_column": "id"
+  },
+  "playground-series-s3e17": {
+    "cleaned_prompt": "Task: Predict machine failure probability.\n\nEvaluation: Area Under ROC Curve (AUC-ROC) - higher is better.\n\nSubmission Format:\nid,Machine failure\n136429,0.5\n136430,0.1\n(predict probability)\n\nDataset:\n- Synthetic data from Machine Failure Predictions\n- Machine failure is the binary target\n\nFiles:\n- train.csv: training dataset\n- test.csv: test dataset",
+    "metric": "roc_auc",
+    "task_type": "classification",
+    "target_column": "Machine failure",
+    "id_column": "id"
+  },
+  "playground-series-s3e18": {
+    "cleaned_prompt": "Task: Predict enzyme substrate classification (multi-label, 2 targets).\n\nEvaluation: Mean AUC-ROC across both target columns - higher is better.\n\nSubmission Format:\nid,EC1,EC2\n14838,0.22,0.71\n14839,0.78,0.43\n(predict probabilities for EC1 and EC2)\n\nDataset:\n- Synthetic data from Multi-label Classification of enzyme substrates\n- EC1 and EC2 are binary targets (predict both)\n- Training data has 6 target columns but only predict first 2\n\nFiles:\n- train.csv: training dataset with EC1-EC6 targets\n- test.csv: test dataset",
+    "metric": "roc_auc",
+    "task_type": "classification",
+    "target_column": ["EC1", "EC2"],
+    "id_column": "id"
+  },
+  "playground-series-s3e19": {
+    "cleaned_prompt": "Task: Predict sales for various items at stores in different countries (time series forecasting).\n\nEvaluation: Symmetric Mean Absolute Percentage Error (SMAPE) - lower is better.\n\nSubmission Format:\nid,num_sold\n136950,100\n136951,100\n\nDataset:\n- Synthetic data with weekend/holiday effects and seasonality\n- Predict sales during 2022\n\nFiles:\n- train.csv: sales data by date-country-store-item\n- test.csv: test data (Public LB = Q1, Private LB = remaining)",
+    "metric": "smape",
+    "task_type": "regression",
+    "target_column": "num_sold",
+    "id_column": "id"
+  },
+  "playground-series-s3e20": {
+    "cleaned_prompt": "Task: Predict CO2 emissions across African locations using satellite data.\n\nEvaluation: Root Mean Squared Error (RMSE) - lower is better.\n\nSubmission Format:\nID_LAT_LON_YEAR_WEEK,emission\nID_-0.510_29.290_2022_00,81.94\nID_-0.510_29.290_2022_01,81.94\n\nDataset:\n- Predict carbon emissions using Sentinel-5P satellite observations\n- 497 unique locations in Rwanda\n- Features: Sulphur Dioxide, Carbon Monoxide, Nitrogen Dioxide, Formaldehyde, UV Aerosol Index, Ozone, Cloud data\n- Training: 2019-2021, Predict: 2022\n\nFiles:\n- train.csv: training data with emission target\n- test.csv: test data",
+    "metric": "rmse",
+    "task_type": "regression",
+    "target_column": "emission",
+    "id_column": "ID_LAT_LON_YEAR_WEEK"
+  },
+  "playground-series-s3e22": {
+    "cleaned_prompt": "Task: Predict horse survival outcome (classification).\n\nEvaluation: Micro-averaged F1 Score - higher is better.\n\nSubmission Format:\nid,outcome\n1235,lived\n1236,lived\n1237,died\n\nDataset:\n- Synthetic data from Horse Survival Dataset\n- outcome is the categorical target (lived/died)\n\nFiles:\n- train.csv: training dataset\n- test.csv: test dataset",
+    "metric": "f1_micro",
+    "task_type": "classification",
+    "target_column": "outcome",
+    "id_column": "id"
+  },
+  "playground-series-s3e24": {
+    "cleaned_prompt": "Task: Predict smoking status from bio-signals.\n\nEvaluation: Area Under ROC Curve (AUC-ROC) - higher is better.\n\nSubmission Format:\nid,smoking\n159256,0.5\n159257,0.5\n(predict probability)\n\nDataset:\n- Synthetic data from Smoker Status Prediction using Bio-Signals\n- smoking is the binary target\n\nFiles:\n- train.csv: training dataset\n- test.csv: test dataset",
+    "metric": "roc_auc",
+    "task_type": "classification",
+    "target_column": "smoking",
+    "id_column": "id"
+  },
+  "playground-series-s3e25": {
+    "cleaned_prompt": "Task: Predict Mohs hardness of materials.\n\nEvaluation: Median Absolute Error (MedAE) - lower is better.\n\nSubmission Format:\nid,Hardness\n10407,4.647\n10408,4.647\n\nDataset:\n- Synthetic data from Prediction of Mohs Hardness dataset\n- Hardness is the continuous target\n\nFiles:\n- train.csv: training dataset\n- test.csv: test dataset",
+    "metric": "medae",
+    "task_type": "regression",
+    "target_column": "Hardness",
+    "id_column": "id"
+  },
+  "playground-series-s4e1": {
+    "cleaned_prompt": "Task: Predict bank customer churn.\n\nEvaluation: Area Under ROC Curve (AUC-ROC) - higher is better.\n\nSubmission Format:\nid,Exited\n165034,0.9\n165035,0.1\n(predict probability)\n\nDataset:\n- Synthetic data from Bank Customer Churn Prediction dataset\n- Exited is the binary target\n\nFiles:\n- train.csv: training dataset\n- test.csv: test dataset",
+    "metric": "roc_auc",
+    "task_type": "classification",
+    "target_column": "Exited",
+    "id_column": "id"
+  },
+  "playground-series-s4e2": {
+    "cleaned_prompt": "Task: Predict obesity risk category (multi-class classification).\n\nEvaluation: Accuracy - higher is better.\n\nSubmission Format:\nid,NObeyesdad\n20758,Normal_Weight\n20759,Obesity_Type_I\n\nDataset:\n- Synthetic data from Obesity or CVD risk dataset\n- NObeyesdad is the categorical target (obesity category)\n\nFiles:\n- train.csv: training dataset\n- test.csv: test dataset",
+    "metric": "accuracy",
+    "task_type": "classification",
+    "target_column": "NObeyesdad",
+    "id_column": "id"
+  },
+  "playground-series-s4e3": {
+    "cleaned_prompt": "Task: Predict steel plate defects (multi-label, 7 defect types).\n\nEvaluation: Mean AUC-ROC across all 7 defect categories - higher is better.\n\nSubmission Format:\nid,Pastry,Z_Scratch,K_Scatch,Stains,Dirtiness,Bumps,Other_Faults\n19219,0.5,0.5,0.5,0.5,0.5,0.5,0.5\n(predict probability for each defect type)\n\nDataset:\n- Synthetic data from Steel Plates Faults dataset (UCI)\n- 7 binary targets: Pastry, Z_Scratch, K_Scatch, Stains, Dirtiness, Bumps, Other_Faults\n\nFiles:\n- train.csv: training dataset\n- test.csv: test dataset",
+    "metric": "roc_auc",
+    "task_type": "classification",
+    "target_column": ["Pastry", "Z_Scratch", "K_Scatch", "Stains", "Dirtiness", "Bumps", "Other_Faults"],
+    "id_column": "id"
+  },
+  "playground-series-s4e4": {
+    "cleaned_prompt": "Task: Predict abalone rings (age indicator).\n\nEvaluation: Root Mean Squared Logarithmic Error (RMSLE) - lower is better.\n\nSubmission Format:\nid,Rings\n90615,10\n90616,10\n\nDataset:\n- Synthetic data from Abalone dataset\n- Rings is the integer target (age indicator)\n\nFiles:\n- train.csv: training dataset\n- test.csv: test dataset",
+    "metric": "rmsle",
+    "task_type": "regression",
+    "target_column": "Rings",
+    "id_column": "id"
+  },
+  "playground-series-s4e5": {
+    "cleaned_prompt": "Task: Predict flood probability.\n\nEvaluation: R-squared (R2) Score - higher is better.\n\nSubmission Format:\nid,FloodProbability\n1117957,0.5\n1117958,0.5\n\nDataset:\n- Synthetic data from Flood Prediction Factors dataset\n- FloodProbability is the target\n\nFiles:\n- train.csv: training dataset\n- test.csv: test dataset",
+    "metric": "r2",
+    "task_type": "regression",
+    "target_column": "FloodProbability",
+    "id_column": "id"
+  },
+  "playground-series-s4e6": {
+    "cleaned_prompt": "Task: Predict student academic outcome (multi-class classification).\n\nEvaluation: Accuracy - higher is better.\n\nSubmission Format:\nid,Target\n76518,Graduate\n76519,Dropout\n\nDataset:\n- Synthetic data from Predict Students' Dropout and Academic Success dataset\n- Target is the categorical outcome (Graduate, Dropout, Enrolled)\n\nFiles:\n- train.csv: training dataset\n- test.csv: test dataset",
+    "metric": "accuracy",
+    "task_type": "classification",
+    "target_column": "Target",
+    "id_column": "id"
+  },
+  "porto-seguro-safe-driver-prediction": {
+    "cleaned_prompt": "Task: Predict probability that a driver will file an auto insurance claim.\n\nEvaluation: Normalized Gini Coefficient - higher is better (max = 1).\n\nSubmission Format:\nid,target\n0,0.1\n1,0.9\n(predict probability)\n\nDataset:\n- Features grouped by type: ind, reg, car, calc\n- Binary features marked with 'bin' suffix\n- Categorical features marked with 'cat' suffix\n- Values of -1 indicate missing features\n- target: whether a claim was filed (binary)\n\nFiles:\n- train.csv: training data with target column\n- test.csv: test data",
+    "metric": "normalized_gini",
+    "task_type": "classification",
+    "target_column": "target",
+    "id_column": "id"
+  },
+  "santander-customer-satisfaction": {
+    "cleaned_prompt": "Task: Predict customer dissatisfaction (binary classification).\n\nEvaluation: Area Under ROC Curve (AUC-ROC) - higher is better.\n\nSubmission Format:\nID,TARGET\n2,0\n5,0\n(predict probability)\n\nDataset:\n- Anonymized dataset with numeric variables\n- TARGET = 1 for unsatisfied customers, 0 for satisfied\n\nFiles:\n- train.csv: training set including TARGET\n- test.csv: test set without TARGET",
+    "metric": "roc_auc",
+    "task_type": "classification",
+    "target_column": "TARGET",
+    "id_column": "ID"
+  },
+  "santander-customer-transaction-prediction": {
+    "cleaned_prompt": "Task: Predict whether a customer will make a specific transaction.\n\nEvaluation: Area Under ROC Curve (AUC-ROC) - higher is better.\n\nSubmission Format:\nID_code,target\ntest_0,0\ntest_1,1\n(predict binary 0 or 1)\n\nDataset:\n- Anonymized dataset with numeric feature variables\n- Binary target column\n- String ID_code column\n\nFiles:\n- train.csv: training set\n- test.csv: test set (some rows not included in scoring)",
+    "metric": "roc_auc",
+    "task_type": "classification",
+    "target_column": "target",
+    "id_column": "ID_code"
+  },
+  "santander-value-prediction-challenge": {
+    "cleaned_prompt": "Task: Predict customer transaction value.\n\nEvaluation: Root Mean Squared Logarithmic Error (RMSLE) - lower is better.\n\nSubmission Format:\nID,target\n000137c73,5944923.322036332\n00021489f,5944923.322036332\n\nDataset:\n- Anonymized dataset with numeric feature variables\n- Numeric target column (transaction value)\n\nFiles:\n- train.csv: training set\n- test.csv: test set",
+    "metric": "rmsle",
+    "task_type": "regression",
+    "target_column": "target",
+    "id_column": "ID"
+  },
+  "spaceship-titanic": {
+    "cleaned_prompt": "Task: Predict whether a passenger was transported to an alternate dimension.\n\nEvaluation: Classification Accuracy - higher is better.\n\nSubmission Format:\nPassengerId,Transported\n0013_01,False\n0018_01,True\n(predict True or False)\n\nDataset:\n- Passenger records from spaceship's damaged computer system\n- PassengerId: format gggg_pp (group_person)\n- HomePlanet: planet of departure\n- CryoSleep: suspended animation status\n- Cabin: deck/num/side format\n- Destination: target planet\n- Age, VIP, RoomService, FoodCourt, ShoppingMall, Spa, VRDeck\n- Transported: whether transported to alternate dimension (TARGET)\n\nFiles:\n- train.csv: ~8700 passengers for training\n- test.csv: ~4300 passengers for prediction",
+    "metric": "accuracy",
+    "task_type": "classification",
+    "target_column": "Transported",
+    "id_column": "PassengerId"
+  },
+  "tabular-playground-series-jan-2021": {
+    "cleaned_prompt": "Task: Predict continuous target from continuous features.\n\nEvaluation: Root Mean Squared Error (RMSE) - lower is better.\n\nSubmission Format:\nid,target\n0,0.5\n2,10.2\n\nDataset:\n- Continuous features: cont1 - cont14\n- Continuous target\n\nFiles:\n- train.csv: training data with target column\n- test.csv: test set",
+    "metric": "rmse",
+    "task_type": "regression",
+    "target_column": "target",
+    "id_column": "id"
+  },
+  "tabular-playground-series-feb-2021": {
+    "cleaned_prompt": "Task: Predict continuous target (insurance claim amount) from mixed features.\n\nEvaluation: Root Mean Squared Error (RMSE) - lower is better.\n\nSubmission Format:\nid,target\n0,0.5\n5,10.2\n\nDataset:\n- Synthetic data based on insurance claim amounts\n- Categorical features: cat0 - cat9\n- Continuous features: cont0 - cont13\n\nFiles:\n- train.csv: training data with target column\n- test.csv: test set",
+    "metric": "rmse",
+    "task_type": "regression",
+    "target_column": "target",
+    "id_column": "id"
+  },
+  "tabular-playground-series-mar-2021": {
+    "cleaned_prompt": "Task: Predict binary target (insurance claim probability) from mixed features.\n\nEvaluation: Area Under ROC Curve (AUC-ROC) - higher is better.\n\nSubmission Format:\nid,target\n5,0.5\n6,0.1\n(predict probability)\n\nDataset:\n- Categorical features: cat0 - cat18\n- Continuous features: cont0 - cont10\n\nFiles:\n- train.csv: training data with target column\n- test.csv: test set",
+    "metric": "roc_auc",
+    "task_type": "classification",
+    "target_column": "target",
+    "id_column": "id"
+  },
+  "tabular-playground-series-apr-2021": {
+    "cleaned_prompt": "Task: Predict passenger survival (synthetic Titanic data).\n\nEvaluation: Accuracy - higher is better.\n\nSubmission Format:\nPassengerId,Survived\n100000,0\n100001,1\n(predict 0 or 1)\n\nDataset:\n- Synthetic data based on Titanic dataset\n- Features: Pclass, Sex, Age, SibSp, Parch, Ticket, Fare, Cabin, Embarked\n- Survived is the binary target (0=No, 1=Yes)\n\nFiles:\n- train.csv: training data (~100,000 rows)\n- test.csv: test set (100,000 rows)",
+    "metric": "accuracy",
+    "task_type": "classification",
+    "target_column": "Survived",
+    "id_column": "PassengerId"
+  },
+  "tabular-playground-series-jul-2021": {
+    "cleaned_prompt": "Task: Predict air pollution levels (3 targets: carbon monoxide, benzene, nitrogen oxides).\n\nEvaluation: Mean Column-wise Root Mean Squared Logarithmic Error (RMSLE) - lower is better.\n\nSubmission Format:\ndate_time,target_carbon_monoxide,target_benzene,target_nitrogen_oxides\n2011-01-01 01:00:00,2.0,10.0,300.0\n\nDataset:\n- Time series of air pollution predictions\n- Based on weather (temperature, humidity) and 5 sensor inputs\n- 3 targets: carbon monoxide, benzene, nitrogen oxides\n\nFiles:\n- train.csv: training data with weather, sensor, and target values\n- test.csv: test set",
+    "metric": "rmsle",
+    "task_type": "regression",
+    "target_column": ["target_carbon_monoxide", "target_benzene", "target_nitrogen_oxides"],
+    "id_column": "date_time"
+  },
+  "tabular-playground-series-aug-2021": {
+    "cleaned_prompt": "Task: Predict loan default loss.\n\nEvaluation: Root Mean Squared Error (RMSE) - lower is better.\n\nSubmission Format:\nid,loss\n250000,0.0\n250001,10.3\n\nDataset:\n- Synthetic data based on loan default loss prediction\n- Loss is integer-valued but predictions can be continuous\n\nFiles:\n- train.csv: training data with loss column\n- test.csv: test set",
+    "metric": "rmse",
+    "task_type": "regression",
+    "target_column": "loss",
+    "id_column": "id"
+  },
+  "tabular-playground-series-sep-2021": {
+    "cleaned_prompt": "Task: Predict insurance claim probability.\n\nEvaluation: Area Under ROC Curve (AUC-ROC) - higher is better.\n\nSubmission Format:\nid,claim\n957919,0.5\n957920,0.5\n(predict probability)\n\nDataset:\n- Synthetic data for predicting insurance claims\n- Features are anonymized and may contain missing values\n- claim is the binary target\n\nFiles:\n- train.csv: training data with claim column\n- test.csv: test set",
+    "metric": "roc_auc",
+    "task_type": "classification",
+    "target_column": "claim",
+    "id_column": "id"
+  },
+  "tabular-playground-series-oct-2021": {
+    "cleaned_prompt": "Task: Predict biological response of molecules.\n\nEvaluation: Area Under ROC Curve (AUC-ROC) - higher is better.\n\nSubmission Format:\nid,target\n100000,0.5\n100001,0.9\n(predict probability)\n\nDataset:\n- Synthetic data based on molecular response prediction\n- Mix of scaled continuous features and binary features\n- target is the binary outcome\n\nFiles:\n- train.csv: training data with target column\n- test.csv: test set",
+    "metric": "roc_auc",
+    "task_type": "classification",
+    "target_column": "target",
+    "id_column": "id"
+  },
+  "tabular-playground-series-nov-2021": {
+    "cleaned_prompt": "Task: Predict spam email classification.\n\nEvaluation: Area Under ROC Curve (AUC-ROC) - higher is better.\n\nSubmission Format:\nid,target\n600000,0.5\n600001,0.9\n(predict probability)\n\nDataset:\n- Synthetic data based on spam email identification\n- 100 continuous feature columns\n- target is the binary outcome (spam/not spam)\n\nFiles:\n- train.csv: training data with target column\n- test.csv: test set",
+    "metric": "roc_auc",
+    "task_type": "classification",
+    "target_column": "target",
+    "id_column": "id"
+  },
+  "tabular-playground-series-dec-2021": {
+    "cleaned_prompt": "Task: Predict forest cover type (multi-class classification).\n\nEvaluation: Multi-class Classification Accuracy - higher is better.\n\nSubmission Format:\nId,Cover_Type\n4000000,2\n4000001,1\n(predict integer class)\n\nDataset:\n- Synthetic data based on Forest Cover Type Prediction\n- Cover_Type is the categorical target (integer class)\n\nFiles:\n- train.csv: training data with Cover_Type column\n- test.csv: test set",
+    "metric": "accuracy",
+    "task_type": "classification",
+    "target_column": "Cover_Type",
+    "id_column": "Id"
+  },
+  "tabular-playground-series-jan-2022": {
+    "cleaned_prompt": "Task: Predict item sales for fictitious stores (time series forecasting).\n\nEvaluation: Symmetric Mean Absolute Percentage Error (SMAPE) - lower is better.\n\nSubmission Format:\nrow_id,num_sold\n26298,100\n26299,100\n\nDataset:\n- Sales forecasting for 3 items at 2 stores in 3 countries\n- Contains weekend/holiday effects and seasonality\n- Public LB: Q1 of test year, Private LB: remaining\n\nFiles:\n- train.csv: sales data by date-country-store-item\n- test.csv: test data",
+    "metric": "smape",
+    "task_type": "regression",
+    "target_column": "num_sold",
+    "id_column": "row_id"
+  },
+  "tabular-playground-series-feb-2022": {
+    "cleaned_prompt": "Task: Classify bacteria species from DNA snippet histograms.\n\nEvaluation: Categorization Accuracy - higher is better.\n\nSubmission Format:\nrow_id,target\n200000,Streptococcus_pneumoniae\n200001,Enterococcus_hirae\n(predict species name)\n\nDataset:\n- 10 different bacteria species\n- DNA snippets analyzed as histograms of base counts\n- Each row contains spectrum of 286 histogram possibilities (A0-T0-G0-C10 to A10-T0-G0-C0)\n- Contains simulated measurement errors\n\nFiles:\n- train.csv: training data with target species\n- test.csv: test data",
+    "metric": "accuracy",
+    "task_type": "classification",
+    "target_column": "target",
+    "id_column": "row_id"
+  },
+  "tabular-playground-series-mar-2022": {
+    "cleaned_prompt": "Task: Forecast traffic congestion levels.\n\nEvaluation: Mean Absolute Error (MAE) - lower is better.\n\nSubmission Format:\nrow_id,congestion\n140140,50.0\n140141,50.0\n(congestion values 0-100, can predict floats)\n\nDataset:\n- 12 hours of traffic flow in U.S. metropolis\n- Features: time, x/y coordinates, direction (EB, SW, etc.)\n- congestion: normalized to 0-100 range (TARGET)\n- Training: April-September 1991\n- Test: predict for 1991-09-30\n\nFiles:\n- train.csv: training data with 65 roadways\n- test.csv: test data",
+    "metric": "mae",
+    "task_type": "regression",
+    "target_column": "congestion",
+    "id_column": "row_id"
+  },
+  "tabular-playground-series-may-2022": {
+    "cleaned_prompt": "Task: Predict manufacturing process state (binary classification with feature interactions).\n\nEvaluation: Area Under ROC Curve (AUC-ROC) - higher is better.\n\nSubmission Format:\nid,target\n900000,0.65\n900001,0.97\n(predict probability)\n\nDataset:\n- Simulated manufacturing control data\n- Predict machine state (0 or 1)\n- Dataset includes feature interactions\n- Normalized continuous data and categorical data\n\nFiles:\n- train.csv: training data\n- test.csv: test data",
+    "metric": "roc_auc",
+    "task_type": "classification",
+    "target_column": "target",
+    "id_column": "id"
+  },
+  "tabular-playground-series-sep-2022": {
+    "cleaned_prompt": "Task: Predict book sales for competing stores (time series forecasting during 2021).\n\nEvaluation: Symmetric Mean Absolute Percentage Error (SMAPE) - lower is better.\n\nSubmission Format:\nrow_id,num_sold\n70128,100\n70129,100\n\nDataset:\n- Predict sales for 4 items from 2 stores in 6 countries\n- Challenging task: predict sales during tumultuous 2021\n- Contains weekend/holiday effects and seasonality\n- Public LB: Q1 of test year, Private LB: remaining\n\nFiles:\n- train.csv: sales data by date-country-store-item\n- test.csv: test data",
+    "metric": "smape",
+    "task_type": "regression",
+    "target_column": "num_sold",
+    "id_column": "row_id"
+  },
+  "titanic": {
+    "cleaned_prompt": "Task: Predict whether a passenger was transported to an alternate dimension.\n\nEvaluation: Classification Accuracy - higher is better.\n\nSubmission Format:\nPassengerId,Transported\n0013_01,False\n0018_01,True\n(predict True or False)\n\nDataset:\n- Passenger records from spaceship's damaged computer system\n- PassengerId: format gggg_pp (group_person)\n- HomePlanet: planet of departure\n- CryoSleep: suspended animation status\n- Cabin: deck/num/side format\n- Destination: target planet\n- Age, VIP, RoomService, FoodCourt, ShoppingMall, Spa, VRDeck\n- Transported: whether transported to alternate dimension (TARGET)\n\nFiles:\n- train.csv: ~8700 passengers for training\n- test.csv: ~4300 passengers for prediction",
+    "metric": "accuracy",
+    "task_type": "classification",
+    "target_column": "Transported",
+    "id_column": "PassengerId"
+  },
+  "tmdb-box-office-prediction": {
+    "cleaned_prompt": "Task: Predict international box office revenue for movies.\n\nEvaluation: Root Mean Squared Logarithmic Error (RMSLE) - lower is better.\n\nSubmission Format:\nid,revenue\n1461,1000000\n1462,50000\n\nDataset:\n- 7,398 movies with metadata from The Movie Database (TMDB)\n- Features: cast, crew, plot keywords, budget, release dates, languages, production companies, countries\n- Predict worldwide revenue for 4,398 test movies\n- Note: Some movies share titles but are different (e.g., remakes)\n\nFiles:\n- train.csv: training data with revenue\n- test.csv: test data",
+    "metric": "rmsle",
+    "task_type": "regression",
+    "target_column": "revenue",
+    "id_column": "id"
+  },
+  "tweet-sentiment-extraction": {
+    "cleaned_prompt": "Task: Extract the word or phrase from a tweet that best supports its sentiment.\n\nEvaluation: Word-level Jaccard Score - higher is better.\n\nSubmission Format:\ntextID,selected_text\n2,\"very good\"\n5,\"I don't care\"\n(quote the exact text, include punctuation)\n\nDataset:\n- Each row has tweet text, sentiment label, and selected_text (train only)\n- Sentiment: positive, negative, or neutral\n- Extract the phrase that exemplifies the sentiment\n- Include all characters within the span (commas, spaces, etc.)\n\nFiles:\n- train.csv: text, sentiment, selected_text\n- test.csv: text, sentiment only",
+    "metric": "jaccard",
+    "task_type": "extraction",
+    "target_column": "selected_text",
+    "id_column": "textID"
+  },
+  "us-patent-phrase-to-phrase-matching": {
+    "cleaned_prompt": "Task: Predict semantic similarity between patent phrases.\n\nEvaluation: Pearson Correlation Coefficient - higher is better.\n\nSubmission Format:\nid,score\n4112d61851461f60,0.5\n09e418c93a776564,0.25\n(predict similarity 0-1)\n\nDataset:\n- Pairs of phrases (anchor and target) from patents\n- Rate similarity 0 (unrelated) to 1 (identical meaning)\n- Context: CPC classification indicates technical domain\n- Score meanings: 1.0=exact match, 0.75=close synonym, 0.5=same function, 0.25=somewhat related, 0.0=unrelated\n- Test set: ~12K pairs\n\nFiles:\n- train.csv: id, anchor, target, context, score\n- test.csv: id, anchor, target, context",
+    "metric": "pearson",
+    "task_type": "regression",
+    "target_column": "score",
+    "id_column": "id"
+  },
+  "ventilator-pressure-prediction": {
+    "cleaned_prompt": "Task: Predict airway pressure in mechanical ventilator simulation.\n\nEvaluation: Mean Absolute Error (MAE) during inspiratory phase only - lower is better.\n\nSubmission Format:\nid,pressure\n1,20\n2,23\n\nDataset:\n- Time series of breaths (~3 seconds each)\n- Predict airway pressure given control inputs\n- Control inputs: u_in (inspiratory valve 0-100), u_out (expiratory valve 0 or 1)\n- Lung attributes: R (resistance), C (compliance)\n- pressure: airway pressure in cmH2O (TARGET)\n\nFiles:\n- train.csv: training data with pressure\n- test.csv: test data (predict pressure)",
+    "metric": "mae",
+    "task_type": "regression",
+    "target_column": "pressure",
+    "id_column": "id"
+  },
+  "commonlitreadabilityprize": {
+    "cleaned_prompt": "Task: Predict reading ease/complexity of text excerpts.\n\nEvaluation: Root Mean Squared Error (RMSE) - lower is better.\n\nSubmission Format:\nid,target\neaf8e7355,0.0\n60ecc9777,0.5\nc0f722661,-2.0\n\nDataset:\n- Excerpts from literature across various time periods\n- Predict reading ease score (target)\n- Includes standard_error in train (spread of rater scores)\n\nData Fields:\n- id: unique ID for excerpt\n- excerpt: text to predict reading ease of\n- target: reading ease score (TARGET)\n\nFiles:\n- train.csv: training data\n- test.csv: test data",
+    "metric": "rmse",
+    "task_type": "regression",
+    "target_column": "target",
+    "id_column": "id"
+  },
+  "google-quest-challenge": {
+    "cleaned_prompt": "Task: Predict 30 subjective quality labels for question-answer pairs.\n\nEvaluation: Mean column-wise Spearman's correlation coefficient - higher is better.\n\nSubmission Format:\nqa_id,question_asker_intent_understanding,...,answer_well_written\n6,0.0,...,0.5\n8,0.5,...,0.1\n(predict probability 0-1 for each of 30 target labels)\n\nDataset:\n- Question-answer pairs from various StackExchange properties\n- 30 target labels (question_* and answer_* prefixes)\n- Target labels are continuous in range [0, 1] (aggregated from multiple raters)\n- Training data may have duplicate questions with different answers\n- Test data has no duplicate questions\n\nFiles:\n- train.csv: training data with 30 target columns\n- test.csv: test data\n- sample_submission.csv: shows the 30 target column names",
+    "metric": "spearman",
+    "task_type": "regression",
+    "target_column": "30_labels",
+    "id_column": "qa_id"
+  },
+  "learning-agency-lab-automated-essay-scoring-2": {
+    "cleaned_prompt": "Task: Predict essay scores on 1-6 scale.\n\nEvaluation: Quadratic Weighted Kappa - higher is better (measures agreement).\n\nSubmission Format:\nessay_id,score\n000d118,3\n000fe60,3\n001ab80,4\n\nDataset:\n- ~24,000 student-written argumentative essays\n- Scored on 1-6 holistic scale\n- Predict score from essay text\n\nData Fields:\n- essay_id: unique ID\n- full_text: the full essay response\n- score: holistic score 1-6 (TARGET)\n\nFiles:\n- train.csv: training data with score\n- test.csv: test data (~8k observations)",
+    "metric": "qwk",
+    "task_type": "classification",
+    "target_column": "score",
+    "id_column": "essay_id"
+  },
+  "nlp-getting-started": {
+    "cleaned_prompt": "Task: Classify tweets as about real disasters or not.\n\nEvaluation: F1 Score - higher is better.\n\nSubmission Format:\nid,target\n0,0\n2,0\n3,1\n(predict 1 if real disaster, 0 otherwise)\n\nDataset:\n- 10,000 hand-classified tweets\n- Predict if tweet is about a real disaster\n- Note: may contain profane/vulgar text\n\nData Fields:\n- id: unique identifier\n- text: the tweet text\n- location: location sent from (may be blank)\n- keyword: keyword from tweet (may be blank)\n- target: 1 = real disaster, 0 = not (TARGET)\n\nFiles:\n- train.csv: training data with target\n- test.csv: test data",
+    "metric": "f1",
+    "task_type": "classification",
+    "target_column": "target",
+    "id_column": "id"
+  },
+  "playground-series-s3e2": {
+    "cleaned_prompt": "Task: Predict stroke probability from health data.\n\nEvaluation: Area Under ROC Curve (AUC-ROC) - higher is better.\n\nSubmission Format:\nid,stroke\n15304,0.23\n15305,0.55\n(predict probability)\n\nDataset:\n- Synthetic data from Stroke Prediction Dataset\n- stroke is the binary target\n\nFiles:\n- train.csv: training dataset\n- test.csv: test dataset",
+    "metric": "roc_auc",
+    "task_type": "classification",
+    "target_column": "stroke",
+    "id_column": "id"
+  },
+  "playground-series-s3e4": {
+    "cleaned_prompt": "Task: Predict credit card fraud probability.\n\nEvaluation: Area Under ROC Curve (AUC-ROC) - higher is better.\n\nSubmission Format:\nid,Class\n341588,0.23\n341589,0.92\n(predict probability)\n\nDataset:\n- Synthetic data from Credit Card Fraud Detection\n- Class is the binary target (fraud or not)\n- Large dataset, may contain more artifacts\n\nFiles:\n- train.csv: training dataset\n- test.csv: test dataset",
+    "metric": "roc_auc",
+    "task_type": "classification",
+    "target_column": "Class",
+    "id_column": "id"
+  },
+  "playground-series-s3e23": {
+    "cleaned_prompt": "Task: Predict software defect probability.\n\nEvaluation: Area Under ROC Curve (AUC-ROC) - higher is better.\n\nSubmission Format:\nid,defects\n101763,0.5\n101764,0.5\n(predict probability of defects=True)\n\nDataset:\n- Synthetic data from Software Defect Dataset\n- defects is binary target (False=0, True=1)\n\nFiles:\n- train.csv: training dataset\n- test.csv: test dataset",
+    "metric": "roc_auc",
+    "task_type": "classification",
+    "target_column": "defects",
+    "id_column": "id"
+  },
+  "tabular-playground-series-aug-2022": {
+    "cleaned_prompt": "Task: Predict product failure probability.\n\nEvaluation: Area Under ROC Curve (AUC-ROC) - higher is better.\n\nSubmission Format:\nid,failure\n26570,0.2\n26571,0.1\n(predict probability of failure)\n\nDataset:\n- Product testing study results\n- Each product_code has fixed attributes + individual measurements\n- Predict failure based on lab test results\n- failure is the binary target\n\nFiles:\n- train.csv: training data with failure column\n- test.csv: test data",
+    "metric": "roc_auc",
+    "task_type": "classification",
+    "target_column": "failure",
+    "id_column": "id"
+  }
+}

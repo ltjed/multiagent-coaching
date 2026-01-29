@@ -1,0 +1,478 @@
+# MathChat with External Coach Configuration
+#
+# This configuration integrates:
+# 1. MathChat workflow (Generator → Coder → Refiner)
+# 2. Code execution tools
+# 3. External LLM coach evaluation (Gemini)
+#
+# Usage:
+#   python -m marti.cli.commands.train --config-name mathchat_with_coach \
+#       default_agent.pretrain=/path/to/model \
+#       use_wandb=your_key
+
+defaults:
+  - default
+  - _self_
+
+# Workflow configuration
+agent_workflow: "chain-of-agents"
+async_workflow: true  # Must be true to use tools
+workflow_func_path: "marti/worlds/workflows/mathchat_workflow_with_coach.py"
+processor_func_path: "marti/worlds/workflows/mathchat_processor.py"
+
+# Workflow parameters
+workflow_args:
+  # Multi-turn configuration (per-action coaching)
+  # MathChat is sequential: Generator→Coder→Refiner (one pass through all agents)
+  # Each agent executes ONCE, but can take multiple actions during their turn
+  generator_max_turns: 1   # Problem solver: single reasoning pass
+  coder_max_turns: 5       # Code executor: can iterate to fix errors (up to 5 attempts)
+  refiner_max_turns: 1     # Verifier: single synthesis pass
+
+  # Ground truth evaluation (dual-score coach)
+  enable_ground_truth_eval: true  # Enable binary correctness evaluation with ground truth
+                                  # When true: Coach provides PROCESS_SCORE + ANSWER_CORRECT for Verifier
+                                  # When false: Coach provides PROCESS_SCORE only (original behavior)
+                                  # Backward compatible: defaults to false if missing
+
+  # Reward weighting (process vs outcome)
+  reward_process_weight: 1.0  # Weight for process quality (coach's PROCESS_SCORE)
+  reward_outcome_weight: 0.0  # Weight for outcome quality (ANSWER_CORRECT) - disabled
+
+  # Coach configuration
+  coach_model: "gemini-2.5-flash" # gemini-3-pro-preview is about 40% more expensive than gemini-2.5-pro
+  coach_type: "simple"
+  use_vertex_ai: false # Set to true to use Vertex AI (higher quotas, DSQ)
+  vertex_project: null # GCP project ID (required if use_vertex_ai=true)
+  vertex_location: "global" # Vertex AI region (global required for Gemini 2.5+ models)
+  coach_max_output_tokens: null # None=unlimited; thinking models handle their own token budget
+  coach_thinking_budget: null # null=model decides, 0=disable thinking, positive=limit thinking tokens
+
+  # Weave configuration (must be in workflow_args for Ray workers to access)
+  # Note: Can't use ${var} interpolation here, so duplicating values
+  use_weave: true  # Set to false to disable Weave
+  weave_project: "marti-mathchat-coach"  # Weave project name
+
+  coach_prompt_template: |
+    You are evaluating a specific agent in a multi-agent system that collaboratively solves a math competition problem.
+    The system has 3 specialized agents working sequentially:
+
+    1. **Problem Solver**: Reasons through the problem step-by-step
+    2. **Code Executor**: Writes and executes Python code to verify/compute solutions
+    3. **Verifier**: Synthesizes the code executor's output and provides the final answer.
+
+    The success of the overall system is determined by the Verifier's final answer.
+
+    **Workflow Constraints:**
+    - Each agent has a 4K token output limit. Outputs beyond this are truncated.
+    - All agents can see the original problem statement.
+
+    When evaluating, consider whether the agent:
+    - (IMPORTANT) Performed well given their role and the information provided
+    - Stayed within output length limit
+
+    **Problem that the overall system is solving:**
+    {problem}
+
+    **Current agent being evaluated:**
+    {agent_role}
+
+    **What the agent received as input:**
+    {agent_input}
+
+    **What the agent outputted:**
+    {agent_output}
+
+    **Environment feedback for the agent's tool call (if applicable):**
+    {tool_observation}
+
+    **Ground truth answer (if applicable):**
+    {ground_truth_answer}
+
+    Evaluate the agent's decision quality based on:
+    - Given the agent's role and the information it had as input, how helpful is its output towards the overall system's success?
+    - For Code Executor: Did it output code in the right format? Is the code syntactically correct and does it solve the problem?
+    - For Verifier: Did it correctly synthesize the information and output the final answer?
+
+    Strictly assigns a score from 0 (terrible) to 10 (perfect).
+
+    Additionally, if ground truth is provided (not "N/A") and the agent is "Verifier", you MUST also verify answer correctness:
+
+    Provide binary correctness as:
+    - ANSWER_CORRECT: 1 (if the Verifier's final answer matches the ground truth)
+    - ANSWER_CORRECT: 0 (if the Verifier's final answer is incorrect)
+
+    Structure your output in the following format exactly:
+
+    PROCESS_SCORE: [0 to 10]
+    ANSWER_CORRECT: [0 or 1, but only if ground truth provided and agent is Verifier]
+
+# Tools configuration
+tools_config:
+  # Note: max_turns for each agent is configured in workflow_args above
+  # (generator_max_turns, coder_max_turns, refiner_max_turns)
+  num_workers: 16  # Number of concurrent workers (allows 16 trajectories to call tools simultaneously)
+  enable_metrics: true
+  enable_rate_limiting: true
+
+  tools:
+    code_interpreter:
+      type: sandbox_fusion
+      enable_rate_limiting: true
+      rate_limit: 30  # Maximum 30 calls per 30 seconds
+      timeout: 30
+      base_url: "http://127.0.0.1:8080/run_code"  # SandboxFusion service address
+      schema_path: "examples/schema/code.json"
+
+# Agent configuration
+agents:
+  - agent_problem_solver:
+      role: agent_problem_solver
+      is_tuning: true
+      is_reasoning_model: true  # Use thinking model
+
+  - agent_code_executor:
+      role: agent_code_executor
+      is_tuning: true
+      is_reasoning_model: true
+
+  - agent_verifier:
+      role: agent_verifier
+      is_tuning: true
+      is_reasoning_model: true
+
+# Shared agent settings
+shared_agents: false  # 3 agents are independent (can set to true to share models)
+parallel_loading: true
+
+# Dataset configuration
+verify_task: "math"  # Math task
+verify_task_eval: "math"
+packing_samples: true
+mask_truncated_completions: true
+
+# Data paths
+prompt_data: "json@./data/MATH"  # MATH dataset
+input_key: "prompt"
+label_key: "answer"
+apply_chat_template: false  # Async workflows handle prompt formatting in workflow file
+
+# Evaluation datasets
+extra_eval_tasks: ["aime", "amc"]
+extra_eval_dir: "./data/Bench"
+
+# Default agent parameters
+default_agent:
+  # ============================================================================
+  # Model base configuration
+  # ============================================================================
+
+  role: "base"
+  # Purpose: Agent role identifier for logs and internal distinction
+  # Note: Generic role; specific roles defined in agents list (agent_problem_solver, etc.)
+  # Default: "base"
+
+  is_reasoning_model: true
+  # Purpose: Whether to use thinking models (e.g., Qwen3-4B-Thinking, QwQ-32B)
+  #          Adds <think> token during generation, model reasons internally before outputting
+  # Note: Required for math reasoning! Thinking models improve MATH performance by 20-30%
+  # Default: false (different - default uses regular models)
+
+  is_tuning: true
+  # Purpose: Whether this agent participates in RL training (true=train, false=inference only)
+  # Note: All 3 agents need training, so must be true
+  # Default: true
+
+  pretrain: null
+  # Purpose: Pretrained model path, null means must be specified via command line
+  #          e.g., --default_agent.pretrain=/path/to/Qwen3-4B-Thinking
+  # Note: Forces explicit specification to avoid using wrong model
+  # Default: null
+
+  # ============================================================================
+  # vLLM inference engine configuration
+  # ============================================================================
+
+  vllm_num_engines: 4
+  # Purpose: Number of parallel vLLM inference engines per agent
+  #          Used to generate multiple samples simultaneously (speedup when n_samples_per_prompt=8)
+  # Note: 4 engines -> each agent uses 4 GPU slots (if tensor_parallel=1)
+  #       Total: 3 agents x 4 = 12 GPU slots for vLLM
+  # Default: 4
+  # Warning: If you only have 2-4 GPUs, change to vllm_num_engines: 2
+
+  vllm_tensor_parallel_size: 1
+  # Purpose: Tensor Parallelism degree, 1 means each engine uses 1 GPU
+  #          If 2, each engine splits model across 2 GPUs
+  # Note: Small models (3B-7B) fit on single card, no TP needed
+  #       Large models (70B+) need TP=4 or 8
+  # Default: 1
+
+  vllm_gpu_memory_utilization: 0.6
+  # Purpose: Percentage of single GPU memory vLLM can use (0.6 = 60%)
+  #          Remaining 40% reserved for actor/critic/reference models
+  # Note: Because colocate_all_models=true, all models share GPU
+  #       Need to leave space for training, otherwise OOM
+  # Default: 0.9 (different - default is more aggressive, prone to OOM)
+  # Recommended: Use 0.5-0.6 when colocate=true, 0.8-0.9 for separate GPUs
+
+  vllm_enable_sleep: true
+  # Purpose: Allow vLLM engine to sleep when idle, releasing GPU resources
+  #          During training phase (PPO update), vLLM pauses to free memory for DeepSpeed
+  # Note: Use with colocate_all_models=true for dynamic resource management
+  #       Minor performance loss (wake-up latency) for stability
+  # Default: false (different - default keeps vLLM always occupying memory)
+
+  vllm_sync_backend: "nccl"
+  # Purpose: vLLM distributed communication backend
+  #          nccl = High-speed communication between NVIDIA GPUs (fastest)
+  #          gloo = CPU-based communication (better compatibility but slower)
+  # Note: NVIDIA GPUs must use nccl, AMD/CPU use gloo
+  # Default: "gloo" (different - default uses gloo for compatibility)
+
+  # ============================================================================
+  # GPU Resource Allocation
+  # ============================================================================
+
+  ref_num_nodes: 1
+  # Purpose: Number of nodes for Reference model (frozen original model for KL penalty)
+  # Note: Single machine = 1, multi-machine distributed > 1
+  # Default: 1
+
+  ref_num_gpus_per_node: 2
+  # Purpose: GPUs per node for Reference model
+  #          Total GPUs = ref_num_nodes x ref_num_gpus_per_node
+  # Note: Each agent's ref model uses 2 cards, 3 agents x 2 GPUs = 6 GPUs for all ref models
+  # Default: 8 (different - default assumes large cluster)
+  # Warning: Adjust based on your GPU count!
+
+  actor_num_nodes: 1
+  # Purpose: Number of nodes for Actor model (policy being trained)
+  # Note: Single machine = 1
+  # Default: 1
+
+  actor_num_gpus_per_node: 2
+  # Purpose: GPUs per node for Actor model
+  # Note: Same as ref, 2 GPUs per agent
+  # Default: 8 (different)
+
+  critic_num_nodes: 1
+  # Purpose: Number of nodes for Critic model (value function)
+  # Note: Single machine = 1
+  # Default: 1
+
+  critic_num_gpus_per_node: 2
+  # Purpose: GPUs per node for Critic model
+  # Note: Same as ref/actor, 2 GPUs per agent
+  # Default: 8 (different)
+
+  colocate_all_models: true
+  # Purpose: All models (ref, actor, critic, vLLM) share same GPU set
+  #          true = Saves GPUs but requires careful memory management
+  #          false = Each model on separate GPUs, more stable but needs more cards
+  # Note: Resource constrained (< 8 GPUs) must colocate
+  #       Use with vllm_gpu_memory_utilization=0.6 and vllm_enable_sleep=true
+  # Default: false (different - default assumes sufficient GPUs)
+  # Warning: If you have 12+ GPUs, set to false for stability
+
+  # ============================================================================
+  # Training Hyperparameters
+  # ============================================================================
+
+  advantage_estimator: "group_norm"
+  # Purpose: Advantage estimation method
+  #          "group_norm" = GRPO (Group Relative Policy Optimization)
+  #          "reinforce" = REINFORCE++, "gae" = GAE
+  # Note: GRPO suits multi-sample scenarios (n_samples_per_prompt > 1)
+  #       Stabilizes training through group normalization
+  # Default: Not explicitly defined (depends on algorithm choice)
+
+  training_mode: "rl"
+  # Purpose: Training mode, "rl" = pure RL, "sft" = pure SFT, "both" = RL + SFT hybrid (future)
+  # Note: Currently only RL (using coach rewards), SFT can be added later
+  # Default: Custom parameter
+
+  num_episodes: 5
+  # Purpose: Total training episodes (each episode = one pass through dataset)
+  # Note: 5 episodes for quick experiments, production may need 10-50
+  # Default: 1 (different - default trains only 1 episode)
+
+  n_samples_per_prompt: 8
+  # Purpose: Number of different responses per prompt (for GRPO)
+  #          GRPO needs multiple samples to compute group advantage
+  # Note: 8 samples balances quality and compute cost; more samples = better gradient estimate but linear compute increase
+  # Default: 1 (different - default is single sample PPO)
+  # Recommended: 4-16 for GRPO, 1-4 for REINFORCE
+
+  rollout_batch_size: 128
+  # Purpose: Number of prompts per rollout (inference)
+  #          Actual samples = rollout_batch_size x n_samples_per_prompt = 128 x 8 = 1024 samples
+  # Note: Larger batch = higher throughput but more memory
+  # Default: 1024 (different - default larger, assumes more GPUs)
+
+  micro_rollout_batch_size: 8
+  # Purpose: Micro batch during rollout (prompts per vLLM call)
+  #          rollout_batch_size split into micro batches, 128 / 8 = 16 vLLM calls
+  # Note: Avoids OOM on single vLLM call, similar to gradient accumulation
+  # Default: 8
+
+  train_batch_size: 128
+  # Purpose: Samples per training step (note: samples, not prompts)
+  # Note: Aligned with rollout_batch_size for simplicity
+  # Default: 128
+
+  micro_train_batch_size: 4
+  # Purpose: Micro batch during training (gradient accumulation)
+  #          train_batch_size / micro_train_batch_size = gradient accumulation steps = 128 / 4 = 32 steps
+  # Note: Small micro batch reduces peak memory, compensated by gradient accumulation
+  # Default: 4
+
+  max_epochs: 1
+  # Purpose: How many times to train on each episode's data
+  #          1 = on-policy (data used once), > 1 = off-policy-like (data reused)
+  # Note: PPO/GRPO typically use max_epochs=1 to avoid policy drift
+  # Default: 1
+
+  # ============================================================================
+  # Generation Settings
+  # ============================================================================
+
+  prompt_max_len: 2048
+  # Purpose: Maximum input prompt token length, truncated if exceeds (when truncate_prompt=true)
+  # Note: Math problems are usually short, but chat history accumulates; 2048 is sufficient
+  # Default: 1024 (different - default shorter)
+  # Recommended: Depends on task; MathChat with history needs 2048
+
+  generate_max_len: 2048
+  # Purpose: Maximum generation token length
+  # Note: Math reasoning can be long (step-by-step); 2048 gives thinking space
+  #       Thinking model's <think> section may use several hundred tokens
+  # Default: 1024 (different)
+
+  temperature: 1.0
+  # Purpose: Sampling temperature during training (exploration)
+  #          1.0 = standard sampling, > 1.0 = more random, < 1.0 = more deterministic
+  # Note: RL training needs exploration; 1.0 balances exploration and exploitation
+  # Default: 1.0
+
+  eval_temperature: 0.6
+  # Purpose: Sampling temperature during evaluation
+  # Note: Want more deterministic output (near greedy) during eval, but keep some randomness
+  #       0.0 = fully greedy, 0.6 = slightly random
+  # Default: 0.0 (different - default fully greedy)
+
+  top_p: 1.0
+  # Purpose: Nucleus sampling parameter
+  #          1.0 = consider all tokens, < 1.0 = only consider tokens with cumulative prob top-p
+  # Note: 1.0 with temperature control is sufficient, no extra restriction
+  # Default: 1.0
+
+  # ============================================================================
+  # Optimization Settings
+  # ============================================================================
+
+  actor_learning_rate: 1.0e-6
+  # Purpose: Learning rate for Actor (policy)
+  # Note: RL fine-tuning needs small LR (10-100x smaller than SFT) to avoid policy collapse
+  # Default: 1.0e-6
+
+  critic_learning_rate: 9.0e-6
+  # Purpose: Learning rate for Critic (value function)
+  # Note: Usually 5-10x larger than actor; critic is more stable, helps value function fit rewards quickly
+  # Default: 9.0e-6
+
+  zero_stage: 3
+  # Purpose: DeepSpeed ZeRO optimization level
+  #          1 = optimizer states sharding, 2 = optimizer + gradients sharding
+  #          3 = optimizer + gradients + parameters sharding (most memory efficient)
+  # Note: ZeRO-3 saves most memory, good for large models or multi-agent; cost is slight communication overhead
+  # Default: 2 (different - default uses ZeRO-2)
+  # Warning: If memory sufficient, ZeRO-2 is faster
+
+  bf16: true
+  # Purpose: Use BF16 (Brain Float 16) mixed precision training
+  # Note: Saves memory and speeds up, minimal precision loss; requires Ampere+ GPU (A100, H100, RTX 30/40 series)
+  # Default: false (different - default uses FP32)
+  # Warning: For older GPUs (V100), set bf16: false
+
+  adam_offload: true
+  # Purpose: Offload Adam optimizer states to CPU memory
+  # Note: Saves GPU memory (optimizer takes a lot), cost is slightly slower training; use with ZeRO-3 for extreme memory compression
+  # Default: false (different)
+  # Recommended: true for tight memory, false if sufficient
+
+  gradient_checkpointing: true
+  # Purpose: Gradient checkpointing (activation recomputation)
+  #          Don't store all intermediate activations during training, recompute when needed
+  # Note: Trade compute for memory; ~50% memory reduction, ~20% slower training
+  # Default: false (different)
+  # Recommended: Required for large models, optional for small
+
+  normalize_reward: true
+  # Purpose: Standardize rewards per batch (mean=0, std=1)
+  # Note: Stabilizes RL training, avoids gradient explosion from reward scale changes
+  #       Especially important when external coach rewards may be unstable
+  # Default: false (different)
+  # Recommended: true for external rewards
+
+  # ============================================================================
+  # Checkpointing
+  # ============================================================================
+
+  save_steps: 1000
+  # Purpose: Save checkpoint every N training steps
+  # Note: 1000 steps good for long training, avoids wasting time
+  #       Change to 500 or 250 if worried about losing progress
+  # Default: -1 (different - default doesn't auto-save!)
+
+  eval_steps: 5
+  # Purpose: Run evaluation every N episodes (on eval split)
+  # Note: Evaluate every 5 episodes to catch problems early
+  # Default: -1 (different - default doesn't auto-evaluate)
+
+  n_eval_samples_per_prompt: 1
+  # Purpose: Number of predictions per eval prompt (for computing average accuracy)
+  #          1 = evaluate once per prompt (default, backward compatible)
+  #          N > 1 = evaluate N times per prompt, then average (reduces eval variance)
+  # Note: Multiple evaluations with averaging gives more stable model performance estimate
+  #       Independent of vllm_num_engines, can be controlled separately
+  #       Example: n_eval_samples_per_prompt=5 -> evaluate each prompt 5 times, then average accuracy
+  # Default: 1 (backward compatible)
+
+  eval_aggregation: "mean"
+  # Purpose: Aggregation method for multiple evaluation results
+  #          "mean" = average accuracy (default)
+  #          "majority_vote" = majority voting (binary correctness)
+  #          "pass@k" = at least k correct (e.g., "pass@3" means at least 3 correct)
+  # Note: mean suits continuous rewards, majority_vote suits binary correctness
+  # Default: "mean"
+
+  logging_steps: 1
+  # Purpose: Log training metrics every N steps (loss, reward, etc.)
+  # Note: 1 = log every step for detailed monitoring; change to 5 or 10 if too many logs
+  # Default: 1
+
+  max_ckpt_num: 100
+  # Purpose: Maximum checkpoints to keep (auto-delete oldest when exceeded)
+  # Note: 100 is plenty, avoids disk overflow
+  # Default: 3 (different - default keeps only 3)
+
+  save_path: "./outputs/mathchat_coach"
+  # Purpose: Training output (final model) save path
+  # Note: Named by task for easy management
+  # Default: "./ckpt" (different - default generic path)
+
+  ckpt_path: "./checkpoints/mathchat_coach"
+  # Purpose: Training intermediate checkpoints save path
+  # Note: Separate from save_path to avoid confusion
+  # Default: "./ckpt/checkpoints_ppo_ray" (different)
+
+# Logging
+use_wandb: null  # Set Wandb API key
+wandb_project: "MARTI-MathChat-Coach"
+wandb_run_name: null
+use_tensorboard: "./logs/mathchat_coach"
+
+# Weave tracking (LLM observability)
+use_weave: false  # Set to true to enable Weave tracking
+weave_project: "marti-mathchat-coach"  # Weave project name in W&B

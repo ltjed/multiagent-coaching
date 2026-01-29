@@ -1,0 +1,34 @@
+# including default.yaml
+defaults:
+  - default
+  - _self_
+
+agent_workflow: "multi-agents-debate"
+async_workflow: false
+workflow_func_path: null
+processor_func_path: null
+
+tools_config:
+  num_workers: 128
+  max_concurrent_calls: 8
+  enable_metrics: true
+  enable_rate_limiting: true
+  rate_limit: 8
+
+workflow_args:
+  template_id: 1
+  num_rounds: 2
+  max_others: 5
+  contain_self: true
+  shuffle_responses: true
+
+chat_template:
+  - "$question\n\nPlease reason step by step, and put your final answer within \\boxed{}."
+  - "Here are solutions from other agents:\n$responses_str\n\nUsing these responses as additional advice, can you give an updated bullet by bullet answer to the following question:\n$question\n\nPlease reason step by step, and put your final answer within \\boxed{}."
+agents:
+  - generator_1:
+      role: generator
+  - generator_2:
+      role: generator
+  - generator_3:
+      role: generator
