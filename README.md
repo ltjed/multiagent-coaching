@@ -1,28 +1,48 @@
 <p align="center">
-  <img src="assets/logo.png" alt="MARTI logo" width="600">
+  <img src="assets/logo.png" alt="MAPPA logo" width="600">
 </p>
 
-<h1 align="center">Multi-Agent Reinforcement Training Interface</h1>
+<h1 align="center">MAPPA: Multi-Agent Systems with Per-Action Process Rewards from AI Feedback</h1>
 
 <p align="center">
-  Training multi-agent LLM systems with external LLM coaches for process reward evaluation
+  <em>Let AI coaches score every action to train agents end-to-end</em>
+</p>
+
+<p align="center">
+  <a href="https://arxiv.org/abs/2601.23228">
+    <img src="https://img.shields.io/badge/Paper-arXiv-B31B1B?style=for-the-badge&logo=arxiv" alt="arXiv">
+  </a>
 </p>
 
 ---
 
 ## Overview
 
-**MARTI** is a framework for training multi-agent LLM systems using reinforcement learning. Unlike traditional outcome-based rewards, MARTI uses external LLM judges (coaches) to provide per-action process rewards, enabling more granular feedback during training.
+**MAPPA** addresses two fundamental challenges in training multi-agent systems end-to-end:
+
+| Challenge | Problem | MAPPA Solution |
+|-----------|---------|----------------|
+| **Credit Assignment** | When a task fails, which agent is responsible? | AI coach examines each agent's outputs and tool feedback to assign accurate blame |
+| **Sample Efficiency** | Multi-agent rollouts are expensive, but traditional RL provides only one signal at the end | Per-action process rewards provide dense feedback for every step |
+
+### How It Works
+
+An LLM coach evaluates every action as it happens—not just the final outcome. The coach receives:
+- The agent's role and what it was asked to do
+- What the agent saw before acting
+- What the agent generated
+- Tool output: stdout, stderr, error messages
+
+This enables accurate credit assignment without counterfactual reasoning—just checking what each agent actually produced.
 
 ### Key Capabilities
 
 | Feature | Description |
 |---------|-------------|
+| **Per-Action Coaching** | AI coach (Gemini) evaluates each agent action with process rewards (0-10) |
 | **Multi-Agent Orchestration** | Sequential agent workflows where each agent builds on previous outputs |
-| **External LLM Coaching** | Gemini, GPT-4, or Claude as process reward evaluators with per-action feedback |
 | **Code Execution** | Agents write and execute Python via SandboxFusion (secure, isolated) |
 | **Distributed RL Training** | REINFORCE++ with DeepSpeed + Ray for multi-GPU training |
-| **Flexible Evaluation** | Task-specific verifiers for math, code, and data science benchmarks |
 
 ---
 
@@ -38,7 +58,7 @@
 
 1. **Clone and install:**
 ```bash
-git clone <repository-url>
+git clone https://github.com/ltjed/multiagent-coaching.git
 cd multiagent-coaching
 
 uv venv --python 3.11
@@ -208,14 +228,13 @@ REASONING: The code correctly implements the solution approach...
 
 This enables:
 - **Dense feedback**: Every action receives a reward, not just final outcomes
-- **Interpretable training**: Coach reasoning explains what makes actions good/bad
+- **Accurate credit assignment**: Coach examines tool outputs to trace blame correctly
 - **Cross-model learning**: Train smaller models with feedback from larger coaches
 
 ### Agent Communication
 
 - **Sequential execution**: Each agent sees all previous agents' outputs
-- **Spatial predecessors**: Other agents at same timestep
-- **Temporal predecessors**: Same agent's history across turns
+- **File-based coordination**: Agents pass artifacts through shared workspace (creates audit trail for coach)
 - **Thinking models**: Support for `<think>` tags with `is_reasoning_model=true`
 
 ---
@@ -298,6 +317,24 @@ Data Engineer → Modeler → Analyst
 | Data Engineer | EDA, preprocessing, feature engineering | 4 | `X_train.pkl`, `y_train.pkl`, `X_test.pkl` |
 | Modeler | Algorithm selection, training, tuning | 4 | `model.pkl` |
 | Analyst | Prediction generation, format verification | 4 | `submission.csv` |
+
+#### How Credit Assignment Works
+
+When something fails, the coach examines the file trail:
+
+```
+DATAENGINEER evaluation:
+- Tool output: "Saved X_train.pkl, y_train.pkl"
+- No mention of X_test.pkl
+- VERDICT: Failed to save required artifact
+- SCORE: 3/10
+
+ANALYST evaluation:
+- Required file X_test.pkl was never created upstream
+- Correctly attempted to load it
+- VERDICT: Not at fault for the failure
+- SCORE: 6/10
+```
 
 #### Configuration
 
@@ -444,12 +481,13 @@ For questions and support, please open an issue on the GitHub repository.
 To cite this work, please use the following BibTeX entry:
 
 ```bibtex
-@misc{multiagent-coaching2025,
-      title={Multi-Agent Reinforcement Training with External LLM Coaches},
-      year={2025},
+@misc{li2026mappa,
+      title={Scaling Multiagent Systems with Process Rewards},
+      author={Ed Li and Junyu Ren and Cat Yan},
+      year={2026},
       eprint={2601.23228},
       archivePrefix={arXiv},
-      primaryClass={cs.LG},
+      primaryClass={cs.AI},
       url={https://arxiv.org/abs/2601.23228},
 }
 ```
