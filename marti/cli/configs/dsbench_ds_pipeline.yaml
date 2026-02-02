@@ -47,14 +47,14 @@ workflow_args:
   # This allows the coach to see actual performance while evaluating process quality.
 
   # Coach configuration
-  coach_model: "gemini-3-pro-preview"  # Gemini 3 Pro: 1M context, adaptive thinking
+  coach_model: "gemini-2.5-pro"  # Gemini 2.5 Pro: 1M context, thinking model
   coach_type: "simple"
-  use_vertex_ai: true  # Vertex AI required for Gemini 3 Pro
+  use_vertex_ai: true  # Vertex AI recommended for higher quotas
   vertex_project: null  # Set via env var VERTEX_PROJECT or command line
-  vertex_location: "global"  # Global endpoint required for Gemini 3 models
+  vertex_location: "global"  # Global endpoint for Gemini 2.5+ models
   coach_max_output_tokens: null  # None=unlimited; thinking models handle their own token budget
   coach_thinking_budget: null  # null=model decides, 0=disable thinking, positive=limit thinking tokens
-  # Note: Gemini 3 uses thinking_level (low/high) instead of thinking_budget
+  # Note: Gemini 2.5 Pro uses thinking_budget to control reasoning tokens
 
   # Weave configuration (must be in workflow_args for Ray workers)
   use_weave: false  # Disabled - was causing blocking with huge traces

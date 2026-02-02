@@ -314,11 +314,11 @@ python -m marti.cli.commands.train \
     tools_config.tools.code_interpreter.base_url="${SANDBOX_URL}" \
     `# Override sandbox URL with dynamically allocated port` \
     workflow_args.use_vertex_ai=true \
-    `# Vertex AI required for Gemini 3 Pro` \
+    `# Vertex AI recommended for higher quotas` \
     workflow_args.vertex_project="${VERTEX_PROJECT:-your-gcp-project}" \
     workflow_args.vertex_location="global" \
-    workflow_args.coach_model="gemini-3-pro-preview" \
-    `# Gemini 3 Pro: 1M context, adaptive thinking` \
+    workflow_args.coach_model="gemini-2.5-pro" \
+    `# Gemini 2.5 Pro: 1M context, thinking model` \
     use_wandb="${WANDB_API_KEY:-}" \
     wandb_project="MARTI-DSBench-Modeling" \
     wandb_run_name="${EXP}" \

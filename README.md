@@ -180,7 +180,7 @@ multiagent-coaching/
 1. MultiAgentController initializes:
    ├─ Dataset loading (MATH, AIME, DSBench)
    ├─ Agent models (actor/critic/reference)
-   ├─ vLLM engines (4 per agent)
+   ├─ vLLM engines (2 per agent)
    └─ MultiAgentWorldAsync environment
 
 2. For each episode:
@@ -222,91 +222,147 @@ This enables:
 
 ## Configuration
 
-Training configs use [Hydra](https://hydra.cc/) and are located in `marti/cli/configs/`. The configuration provides fine-grained control over all training components.
+Training configs use [Hydra](https://hydra.cc/) and are located in `marti/cli/configs/`. Each pipeline has its own YAML config and shell script.
 
-### Configuration Structure
+---
 
-```yaml
-# Workflow configuration
-agent_workflow: "chain-of-agents"
-workflow_func_path: "marti/worlds/workflows/mathchat_workflow_with_coach.py"
+### MathChat Pipeline
 
-# Workflow parameters (coach, tools, rewards)
-workflow_args:
-  coach_model: "gemini-2.5-flash"
-  coach_type: "simple"
-  use_vertex_ai: false
-  reward_process_weight: 1.0
-  reward_outcome_weight: 0.0
+**Config:** `marti/cli/configs/mathchat_with_coach.yaml`
+**Script:** `scripts/run_train_mathchat.sh`
 
-# Agent configuration
-agents:
-  - agent_problem_solver:
-      role: agent_problem_solver
-      is_tuning: true
-      is_reasoning_model: true
+#### Agent Workflow
 
-# Tools configuration
-tools_config:
-  num_workers: 16
-  tools:
-    code_interpreter:
-      type: sandbox_fusion
-      base_url: "http://127.0.0.1:8080/run_code"
-
-# Default agent parameters (shared across agents)
-default_agent:
-  pretrain: null  # Must specify via CLI
-  vllm_num_engines: 4
-  actor_learning_rate: 1.0e-6
-  critic_learning_rate: 9.0e-6
+```
+Problem Solver → Code Executor → Verifier
 ```
 
-- **`workflow_args`**: Configures the coach model, reward weighting, and tool settings
-- **`agents`**: Defines the multi-agent pipeline (roles, training participation)
-- **`tools_config`**: Code execution backend (SandboxFusion) and concurrency
-- **`default_agent`**: Model paths, vLLM engines, learning rates, memory management
+| Agent | Role | Max Turns |
+|-------|------|-----------|
+| Problem Solver | Reasons through the problem step-by-step | 1 |
+| Code Executor | Writes and executes Python code to verify/compute | 2 |
+| Verifier | Synthesizes outputs and provides final answer | 1 |
 
-### Key Parameters by Task
+#### Configuration
 
-The shell scripts (`scripts/run_train_*.sh`) override many YAML defaults. Below are the **actual values used in training**:
+```yaml
+# Workflow
+workflow_func_path: "marti/worlds/workflows/mathchat_workflow_with_coach.py"
 
-#### MathChat (`run_train_mathchat.sh`)
+# Coach
+workflow_args:
+  coach_model: "gemini-2.5-flash"
+  use_vertex_ai: true
+  coder_max_turns: 2
+
+# Agents
+agents:
+  - agent_problem_solver
+  - agent_code_executor
+  - agent_verifier
+```
+
+#### Training Parameters (from shell script)
 
 | Parameter | Value | Description |
 |-----------|-------|-------------|
 | `advantage_estimator` | reinforce_plus_plus | REINFORCE++ algorithm |
 | `n_samples_per_prompt` | 2 | Samples per prompt |
 | `rollout_batch_size` | 32 | Prompts per batch |
+| `train_batch_size` | 16 | Samples per training step |
 | `num_episodes` | 8 | Training episodes |
 | `vllm_num_engines` | 2 | vLLM engines per agent |
 | `prompt_max_len` | 24576 | 24K input context |
 | `generate_max_len` | 4096 | 4K generation length |
 
-#### DSBench (`run_train_dsbench.sh`)
+#### Dataset
+
+- **Training:** 512 problems randomly sampled from AIME_1983_2024.json (933 total)
+- **Evaluation:** aime_eval_32.json (32) + amc_eval_32.json (32)
+
+---
+
+### DSBench Pipeline
+
+**Config:** `marti/cli/configs/dsbench_ds_pipeline.yaml`
+**Script:** `scripts/run_train_dsbench.sh`
+
+#### Agent Workflow
+
+```
+Data Engineer → Modeler → Analyst
+```
+
+| Agent | Role | Max Turns | Required Outputs |
+|-------|------|-----------|------------------|
+| Data Engineer | EDA, preprocessing, feature engineering | 4 | `X_train.pkl`, `y_train.pkl`, `X_test.pkl` |
+| Modeler | Algorithm selection, training, tuning | 4 | `model.pkl` |
+| Analyst | Prediction generation, format verification | 4 | `submission.csv` |
+
+#### Configuration
+
+```yaml
+# Workflow
+workflow_func_path: "marti/worlds/workflows/dsbench_workflow.py"
+
+# Coach
+workflow_args:
+  coach_model: "gemini-2.5-pro"
+  use_vertex_ai: true
+  data_engineer_max_turns: 4
+  modeler_max_turns: 4
+  analyst_max_turns: 4
+
+# Agents
+agents:
+  - agent_data_engineer
+  - agent_modeler
+  - agent_analyst
+
+# Stratified sampling (maintains classification/regression balance)
+default_agent:
+  stratified_sampling: true
+  stratify_key: "data_type"
+```
+
+#### Training Parameters (from shell script)
 
 | Parameter | Value | Description |
 |-----------|-------|-------------|
 | `advantage_estimator` | reinforce_plus_plus | REINFORCE++ algorithm |
 | `n_samples_per_prompt` | 2 | Samples per prompt |
 | `rollout_batch_size` | 16 | Prompts per batch |
+| `train_batch_size` | 16 | Samples per training step |
 | `num_episodes` | 30 | Training episodes |
 | `vllm_num_engines` | 2 | vLLM engines per agent |
 | `prompt_max_len` | 24576 | 24K input context |
 | `generate_max_len` | 16384 | 16K generation (for long code) |
-| `coach_model` | gemini-3-pro-preview | Gemini 3 Pro coach |
+| `coach_model` | gemini-2.5-pro | Gemini 2.5 Pro (1M context) |
+
+#### Dataset
+
+- **Training:** dsbench_modeling_train.json (64 Kaggle-style modeling tasks)
+- **Evaluation:** dsbench_modeling_eval.json (8 held-out tasks)
+- **Split:** Stratified ~47% classification, ~53% regression
+
+---
 
 ### Command-Line Overrides
 
 Any config parameter can be overridden via CLI:
 
 ```bash
+# MathChat
 python -m marti.cli.commands.train \
     --config-name mathchat_with_coach \
     default_agent.pretrain=/path/to/model \
-    default_agent.vllm_num_engines=2 \
-    workflow_args.coach_model="gemini-3-pro" \
-    rollout_batch_size=64
+    workflow_args.coach_model="gemini-2.5-flash"
+
+# DSBench
+python -m marti.cli.commands.train \
+    --config-name dsbench_ds_pipeline \
+    default_agent.pretrain=/path/to/model \
+    workflow_args.coach_model="gemini-2.5-pro"
 ```
 
 ---
@@ -323,7 +379,7 @@ python -m marti.cli.commands.train \
 The framework includes optimizations for limited GPU memory:
 
 - `colocate_all_models=true`: Share GPUs between models
-- `vllm_gpu_memory_utilization=0.6`: Leave 40% for training
+- `vllm_gpu_memory_utilization=0.6-0.7`: Leave 30-40% for training
 - `vllm_enable_sleep=true`: vLLM releases memory during backprop
 - `gradient_checkpointing=true`: Trade compute for memory
 - `zero_stage=3`: Maximum DeepSpeed memory compression
