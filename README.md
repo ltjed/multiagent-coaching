@@ -16,7 +16,7 @@
 
 ---
 
-## Overview
+## 🎯 Overview
 
 **MAPPA** addresses two fundamental challenges in training multi-agent systems end-to-end:
 
@@ -46,7 +46,7 @@ This enables accurate credit assignment without counterfactual reasoning—just 
 
 ---
 
-## Installation
+## 🛠️ Installation
 
 ### Prerequisites
 
@@ -94,7 +94,7 @@ export GOOGLE_API_KEY=your-api-key
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
 ### MathChat Training
 
@@ -133,7 +133,7 @@ python -m marti.cli.commands.train \
 
 ---
 
-## Codebase Structure
+## 📁 Codebase Structure
 
 ```
 multiagent-coaching/
@@ -192,7 +192,7 @@ multiagent-coaching/
 
 ---
 
-## How It Works
+## ⚙️ How It Works
 
 ### Training Loop
 
@@ -239,7 +239,7 @@ This enables:
 
 ---
 
-## Configuration
+## 🔧 Configuration
 
 Training configs use [Hydra](https://hydra.cc/) and are located in `marti/cli/configs/`. Each pipeline has its own YAML config and shell script.
 
@@ -404,7 +404,7 @@ python -m marti.cli.commands.train \
 
 ---
 
-## Hardware Requirements
+## 💻 Hardware Requirements
 
 | Configuration | GPUs | Use Case |
 |--------------|------|----------|
@@ -423,7 +423,7 @@ The framework includes optimizations for limited GPU memory:
 
 ---
 
-## Logging
+## 📊 Logging
 
 | Platform | Configuration |
 |----------|---------------|
@@ -433,7 +433,7 @@ The framework includes optimizations for limited GPU memory:
 
 ---
 
-## Key Dependencies
+## 📦 Key Dependencies
 
 - **LLM Inference**: vLLM 0.8.5, flash-attn 2.7.3, transformers 4.52.1
 - **Training**: PyTorch 2.6.0, DeepSpeed 0.16.8, Ray 2.43.0
@@ -445,7 +445,7 @@ See `requirements_uv.txt` for exact tested versions.
 
 ---
 
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -455,13 +455,13 @@ See `requirements_uv.txt` for exact tested versions.
 
 ---
 
-## License
+## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ---
 
-## Acknowledgments
+## 🙏 Acknowledgments
 
 - Built on the [MARTI](https://github.com/TsinghuaC3I/MARTI) multi-agent reinforcement learning framework
 - Code execution powered by [SandboxFusion](https://github.com/bytedance/SandboxFusion)
@@ -470,13 +470,13 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-## Support
+## 📞 Support
 
 For questions and support, please open an issue on the GitHub repository.
 
 ---
 
-## Citation
+## 📚 Citation
 
 To cite this work, please use the following BibTeX entry:
 
