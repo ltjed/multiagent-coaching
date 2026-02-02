@@ -32,3 +32,6 @@ credentials*.json
 *secret*
 *.pem
 *.key
+
+# Claude Code config
+CLAUDE.md

@@ -26,7 +26,7 @@ workflow_args:
   # MathChat is sequential: Generator→Coder→Refiner (one pass through all agents)
   # Each agent executes ONCE, but can take multiple actions during their turn
   generator_max_turns: 1   # Problem solver: single reasoning pass
-  coder_max_turns: 5       # Code executor: can iterate to fix errors (up to 5 attempts)
+  coder_max_turns: 2       # Code executor: can iterate to fix errors (up to 2 attempts)
   refiner_max_turns: 1     # Verifier: single synthesis pass
 
   # Ground truth evaluation (dual-score coach)
@@ -176,7 +176,7 @@ default_agent:
   # Purpose: Whether to use thinking models (e.g., Qwen3-4B-Thinking, QwQ-32B)
   #          Adds <think> token during generation, model reasons internally before outputting
   # Note: Required for math reasoning! Thinking models improve MATH performance by 20-30%
-  # Default: false (different - default uses regular models)
+  # Default: true
 
   is_tuning: true
   # Purpose: Whether this agent participates in RL training (true=train, false=inference only)
@@ -193,13 +193,12 @@ default_agent:
   # vLLM inference engine configuration
   # ============================================================================
 
-  vllm_num_engines: 4
+  vllm_num_engines: 2
   # Purpose: Number of parallel vLLM inference engines per agent
-  #          Used to generate multiple samples simultaneously (speedup when n_samples_per_prompt=8)
-  # Note: 4 engines -> each agent uses 4 GPU slots (if tensor_parallel=1)
-  #       Total: 3 agents x 4 = 12 GPU slots for vLLM
-  # Default: 4
-  # Warning: If you only have 2-4 GPUs, change to vllm_num_engines: 2
+  #          Used to generate multiple samples simultaneously
+  # Note: 2 engines -> each agent uses 2 GPU slots (if tensor_parallel=1)
+  #       Total: 3 agents x 2 = 6 GPU slots for vLLM
+  # Default: 2 (optimized for 2-4 GPU setups with colocate_all_models=true)
 
   vllm_tensor_parallel_size: 1
   # Purpose: Tensor Parallelism degree, 1 means each engine uses 1 GPU
@@ -208,27 +207,27 @@ default_agent:
   #       Large models (70B+) need TP=4 or 8
   # Default: 1
 
-  vllm_gpu_memory_utilization: 0.6
-  # Purpose: Percentage of single GPU memory vLLM can use (0.6 = 60%)
-  #          Remaining 40% reserved for actor/critic/reference models
+  vllm_gpu_memory_utilization: 0.7
+  # Purpose: Percentage of single GPU memory vLLM can use (0.7 = 70%)
+  #          Remaining 30% reserved for actor/critic/reference models
   # Note: Because colocate_all_models=true, all models share GPU
   #       Need to leave space for training, otherwise OOM
-  # Default: 0.9 (different - default is more aggressive, prone to OOM)
-  # Recommended: Use 0.5-0.6 when colocate=true, 0.8-0.9 for separate GPUs
+  # Default: 0.7 (balanced for colocate_all_models=true)
+  # Recommended: Use 0.6-0.7 when colocate=true, 0.8-0.9 for separate GPUs
 
   vllm_enable_sleep: true
   # Purpose: Allow vLLM engine to sleep when idle, releasing GPU resources
-  #          During training phase (PPO update), vLLM pauses to free memory for DeepSpeed
+  #          During training phase (REINFORCE++ update), vLLM pauses to free memory for DeepSpeed
   # Note: Use with colocate_all_models=true for dynamic resource management
   #       Minor performance loss (wake-up latency) for stability
-  # Default: false (different - default keeps vLLM always occupying memory)
+  # Default: true (recommended for colocate_all_models=true)
 
   vllm_sync_backend: "nccl"
   # Purpose: vLLM distributed communication backend
   #          nccl = High-speed communication between NVIDIA GPUs (fastest)
   #          gloo = CPU-based communication (better compatibility but slower)
   # Note: NVIDIA GPUs must use nccl, AMD/CPU use gloo
-  # Default: "gloo" (different - default uses gloo for compatibility)
+  # Default: "nccl"
 
   # ============================================================================
   # GPU Resource Allocation
@@ -243,8 +242,7 @@ default_agent:
   # Purpose: GPUs per node for Reference model
   #          Total GPUs = ref_num_nodes x ref_num_gpus_per_node
   # Note: Each agent's ref model uses 2 cards, 3 agents x 2 GPUs = 6 GPUs for all ref models
-  # Default: 8 (different - default assumes large cluster)
-  # Warning: Adjust based on your GPU count!
+  # Default: 2
 
   actor_num_nodes: 1
   # Purpose: Number of nodes for Actor model (policy being trained)
@@ -254,7 +252,7 @@ default_agent:
   actor_num_gpus_per_node: 2
   # Purpose: GPUs per node for Actor model
   # Note: Same as ref, 2 GPUs per agent
-  # Default: 8 (different)
+  # Default: 2
 
   critic_num_nodes: 1
   # Purpose: Number of nodes for Critic model (value function)
@@ -264,90 +262,88 @@ default_agent:
   critic_num_gpus_per_node: 2
   # Purpose: GPUs per node for Critic model
   # Note: Same as ref/actor, 2 GPUs per agent
-  # Default: 8 (different)
+  # Default: 2
 
   colocate_all_models: true
   # Purpose: All models (ref, actor, critic, vLLM) share same GPU set
   #          true = Saves GPUs but requires careful memory management
   #          false = Each model on separate GPUs, more stable but needs more cards
-  # Note: Resource constrained (< 8 GPUs) must colocate
-  #       Use with vllm_gpu_memory_utilization=0.6 and vllm_enable_sleep=true
-  # Default: false (different - default assumes sufficient GPUs)
-  # Warning: If you have 12+ GPUs, set to false for stability
+  # Note: Use with vllm_gpu_memory_utilization=0.7 and vllm_enable_sleep=true
+  # Default: true
 
   # ============================================================================
   # Training Hyperparameters
   # ============================================================================
 
-  advantage_estimator: "group_norm"
+  advantage_estimator: "reinforce_plus_plus"
   # Purpose: Advantage estimation method
+  #          "reinforce_plus_plus" = REINFORCE++ (global batch normalization, KL penalty in advantages)
   #          "group_norm" = GRPO (Group Relative Policy Optimization)
-  #          "reinforce" = REINFORCE++, "gae" = GAE
-  # Note: GRPO suits multi-sample scenarios (n_samples_per_prompt > 1)
-  #       Stabilizes training through group normalization
-  # Default: Not explicitly defined (depends on algorithm choice)
+  #          "gae" = Generalized Advantage Estimation
+  # Note: REINFORCE++ works well with small n_samples_per_prompt (1-2)
+  #       Uses global batch normalization for stable training
+  # Default: "reinforce_plus_plus"
 
   training_mode: "rl"
   # Purpose: Training mode, "rl" = pure RL, "sft" = pure SFT, "both" = RL + SFT hybrid (future)
   # Note: Currently only RL (using coach rewards), SFT can be added later
   # Default: Custom parameter
 
-  num_episodes: 5
+  num_episodes: 8
   # Purpose: Total training episodes (each episode = one pass through dataset)
-  # Note: 5 episodes for quick experiments, production may need 10-50
-  # Default: 1 (different - default trains only 1 episode)
+  # Note: 8 episodes for standard training runs
+  # Default: 8
 
-  n_samples_per_prompt: 8
-  # Purpose: Number of different responses per prompt (for GRPO)
-  #          GRPO needs multiple samples to compute group advantage
-  # Note: 8 samples balances quality and compute cost; more samples = better gradient estimate but linear compute increase
-  # Default: 1 (different - default is single sample PPO)
-  # Recommended: 4-16 for GRPO, 1-4 for REINFORCE
+  n_samples_per_prompt: 2
+  # Purpose: Number of different responses per prompt
+  # Note: 2 samples works well with REINFORCE++; balances variance reduction and compute cost
+  # Default: 2
+  # Recommended: 1-4 for REINFORCE++, 4-16 for GRPO
 
-  rollout_batch_size: 128
+  rollout_batch_size: 32
   # Purpose: Number of prompts per rollout (inference)
-  #          Actual samples = rollout_batch_size x n_samples_per_prompt = 128 x 8 = 1024 samples
+  #          Actual samples = rollout_batch_size x n_samples_per_prompt = 32 x 2 = 64 samples
   # Note: Larger batch = higher throughput but more memory
-  # Default: 1024 (different - default larger, assumes more GPUs)
+  # Default: 32
 
   micro_rollout_batch_size: 8
   # Purpose: Micro batch during rollout (prompts per vLLM call)
-  #          rollout_batch_size split into micro batches, 128 / 8 = 16 vLLM calls
+  #          rollout_batch_size split into micro batches, 32 / 8 = 4 vLLM calls
   # Note: Avoids OOM on single vLLM call, similar to gradient accumulation
   # Default: 8
 
-  train_batch_size: 128
+  train_batch_size: 16
   # Purpose: Samples per training step (note: samples, not prompts)
-  # Note: Aligned with rollout_batch_size for simplicity
-  # Default: 128
+  # Note: Smaller batch size for memory efficiency with long contexts
+  # Default: 16
 
-  micro_train_batch_size: 4
+  micro_train_batch_size: 1
   # Purpose: Micro batch during training (gradient accumulation)
-  #          train_batch_size / micro_train_batch_size = gradient accumulation steps = 128 / 4 = 32 steps
-  # Note: Small micro batch reduces peak memory, compensated by gradient accumulation
-  # Default: 4
+  #          train_batch_size / micro_train_batch_size = gradient accumulation steps = 16 / 1 = 16 steps
+  # Note: micro_train_batch_size=1 safest for 24K context to avoid OOM
+  # Default: 1
 
   max_epochs: 1
   # Purpose: How many times to train on each episode's data
   #          1 = on-policy (data used once), > 1 = off-policy-like (data reused)
-  # Note: PPO/GRPO typically use max_epochs=1 to avoid policy drift
+  # Note: REINFORCE++ uses max_epochs=1 to avoid policy drift
   # Default: 1
 
   # ============================================================================
   # Generation Settings
   # ============================================================================
 
-  prompt_max_len: 2048
+  prompt_max_len: 24576
   # Purpose: Maximum input prompt token length, truncated if exceeds (when truncate_prompt=true)
-  # Note: Math problems are usually short, but chat history accumulates; 2048 is sufficient
-  # Default: 1024 (different - default shorter)
-  # Recommended: Depends on task; MathChat with history needs 2048
+  # Note: 24K context for sequential agent outputs (Problem Solver → Code Executor → Verifier)
+  #       Each agent sees all previous agents' outputs, so context grows
+  # Default: 24576
 
-  generate_max_len: 2048
+  generate_max_len: 4096
   # Purpose: Maximum generation token length
-  # Note: Math reasoning can be long (step-by-step); 2048 gives thinking space
-  #       Thinking model's <think> section may use several hundred tokens
-  # Default: 1024 (different)
+  # Note: 4K for math reasoning with thinking models
+  #       Thinking model's <think> section may use 1-2K tokens
+  # Default: 4096
 
   temperature: 1.0
   # Purpose: Sampling temperature during training (exploration)
@@ -359,7 +355,7 @@ default_agent:
   # Purpose: Sampling temperature during evaluation
   # Note: Want more deterministic output (near greedy) during eval, but keep some randomness
   #       0.0 = fully greedy, 0.6 = slightly random
-  # Default: 0.0 (different - default fully greedy)
+  # Default: 0.6
 
   top_p: 1.0
   # Purpose: Nucleus sampling parameter
@@ -385,59 +381,54 @@ default_agent:
   # Purpose: DeepSpeed ZeRO optimization level
   #          1 = optimizer states sharding, 2 = optimizer + gradients sharding
   #          3 = optimizer + gradients + parameters sharding (most memory efficient)
-  # Note: ZeRO-3 saves most memory, good for large models or multi-agent; cost is slight communication overhead
-  # Default: 2 (different - default uses ZeRO-2)
-  # Warning: If memory sufficient, ZeRO-2 is faster
+  # Note: ZeRO-3 saves most memory, good for large models or multi-agent
+  # Default: 3
 
   bf16: true
   # Purpose: Use BF16 (Brain Float 16) mixed precision training
   # Note: Saves memory and speeds up, minimal precision loss; requires Ampere+ GPU (A100, H100, RTX 30/40 series)
-  # Default: false (different - default uses FP32)
-  # Warning: For older GPUs (V100), set bf16: false
+  # Default: true
 
   adam_offload: true
   # Purpose: Offload Adam optimizer states to CPU memory
-  # Note: Saves GPU memory (optimizer takes a lot), cost is slightly slower training; use with ZeRO-3 for extreme memory compression
-  # Default: false (different)
-  # Recommended: true for tight memory, false if sufficient
+  # Note: Saves GPU memory (optimizer takes a lot), cost is slightly slower training
+  #       Use with ZeRO-3 for memory efficiency
+  # Default: true
 
   gradient_checkpointing: true
   # Purpose: Gradient checkpointing (activation recomputation)
   #          Don't store all intermediate activations during training, recompute when needed
   # Note: Trade compute for memory; ~50% memory reduction, ~20% slower training
-  # Default: false (different)
-  # Recommended: Required for large models, optional for small
+  # Default: true
 
   normalize_reward: true
   # Purpose: Standardize rewards per batch (mean=0, std=1)
   # Note: Stabilizes RL training, avoids gradient explosion from reward scale changes
   #       Especially important when external coach rewards may be unstable
-  # Default: false (different)
-  # Recommended: true for external rewards
+  # Default: true
 
   # ============================================================================
   # Checkpointing
   # ============================================================================
 
-  save_steps: 1000
+  save_steps: 32
   # Purpose: Save checkpoint every N training steps
-  # Note: 1000 steps good for long training, avoids wasting time
-  #       Change to 500 or 250 if worried about losing progress
-  # Default: -1 (different - default doesn't auto-save!)
+  # Note: 32 steps = approximately 2 full epochs with current batch settings
+  #       Each checkpoint saved to unique dir: global_step{N} (no overwriting)
+  # Default: 32
 
-  eval_steps: 5
-  # Purpose: Run evaluation every N episodes (on eval split)
-  # Note: Evaluate every 5 episodes to catch problems early
-  # Default: -1 (different - default doesn't auto-evaluate)
+  eval_steps: 4
+  # Purpose: Run evaluation every N training steps
+  # Note: Evaluate every 4 steps = approximately 0.25 epochs
+  # Default: 4
 
-  n_eval_samples_per_prompt: 1
+  n_eval_samples_per_prompt: 2
   # Purpose: Number of predictions per eval prompt (for computing average accuracy)
-  #          1 = evaluate once per prompt (default, backward compatible)
   #          N > 1 = evaluate N times per prompt, then average (reduces eval variance)
-  # Note: Multiple evaluations with averaging gives more stable model performance estimate
-  #       Independent of vllm_num_engines, can be controlled separately
-  #       Example: n_eval_samples_per_prompt=5 -> evaluate each prompt 5 times, then average accuracy
-  # Default: 1 (backward compatible)
+  # Note: Actual evaluations per prompt = n_eval_samples_per_prompt × vllm_num_engines
+  #       Example: n_eval=2, vllm_num_engines=2 → each prompt evaluated 4 times (2×2)
+  #       Results aggregated using eval_aggregation method (mean/majority_vote/pass@k)
+  # Default: 2
 
   eval_aggregation: "mean"
   # Purpose: Aggregation method for multiple evaluation results
@@ -452,20 +443,20 @@ default_agent:
   # Note: 1 = log every step for detailed monitoring; change to 5 or 10 if too many logs
   # Default: 1
 
-  max_ckpt_num: 100
+  max_ckpt_num: 10
   # Purpose: Maximum checkpoints to keep (auto-delete oldest when exceeded)
-  # Note: 100 is plenty, avoids disk overflow
-  # Default: 3 (different - default keeps only 3)
+  # Note: 10 checkpoints sufficient for most training runs
+  # Default: 10
 
   save_path: "./outputs/mathchat_coach"
   # Purpose: Training output (final model) save path
   # Note: Named by task for easy management
-  # Default: "./ckpt" (different - default generic path)
+  # Default: "./outputs/mathchat_coach"
 
   ckpt_path: "./checkpoints/mathchat_coach"
   # Purpose: Training intermediate checkpoints save path
   # Note: Separate from save_path to avoid confusion
-  # Default: "./ckpt/checkpoints_ppo_ray" (different)
+  # Default: "./checkpoints/mathchat_coach"
 
 # Logging
 use_wandb: null  # Set Wandb API key
