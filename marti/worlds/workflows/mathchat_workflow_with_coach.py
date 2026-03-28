@@ -18,6 +18,7 @@ import os
 from typing import Dict, List, Any, Optional
 from marti.helpers.logging import init_logger
 from marti.worlds.workflows.utils import apply_template_with_tokenizer
+from marti.worlds.workflows.mathchat_prompts import GENERATOR_PROMPT, CODER_PROMPT, REFINER_PROMPT
 from marti.worlds.workflows.coach_utils import run_agent_with_per_action_coaching
 from marti.verifiers.coach import create_coach
 
@@ -203,20 +204,11 @@ async def workflow(
     # Agent 0: Generator (Problem Solver)
     # ========================================================================
 
-    generator_prompt = """You are Problem Solver in a 3-agent system: Problem Solver (you) → Code Executor → Verifier.
-
-The system succeeds only if the Verifier (final agent) outputs the correct answer. Your job is to draft a solution to the problem.
-
-You have a strict 4k token limit (your thinking inside <think> and </think> tags also counts). Anything beyond that will be truncated.
-
-## Problem
-{problem}"""
-
     logger.info(f"Agent 0 (Generator/Problem Solver) starting execution (max_turns={generator_max_turns})...")
 
     generator_input = apply_template_with_tokenizer(
         generator_agent["tokenizer"],
-        generator_prompt.format(problem=prompt)
+        GENERATOR_PROMPT.format(problem=prompt)
     )
 
     # Use run_agent_with_per_action_coaching
@@ -263,25 +255,11 @@ You have a strict 4k token limit (your thinking inside <think> and </think> tags
     # Agent 1: Coder (Code Executor)
     # ========================================================================
 
-    coder_prompt = """You are Code Executor in a 3-agent system: Problem Solver → Code Executor (you) → Verifier.
-
-The system succeeds only if the Verifier (final agent) outputs the correct answer. Your job is to compute/verify the solution using Python code.
-
-You can execute Python code. Write code in ```python``` blocks and it will be automatically executed by the user on your behalf, based on which you can iterate further or output final answers.
-
-You have a strict 4k token limit (your thinking inside <think> and </think> tags also counts). Anything beyond that will be truncated.
-
-## Problem
-{problem}
-
-## Input from Problem Solver
-{solution}"""
-
     logger.info(f"Agent 1 (Coder/Code Executor) starting execution (max_turns={coder_max_turns})...")
 
     coder_input = apply_template_with_tokenizer(
         coder_agent["tokenizer"],
-        coder_prompt.format(problem=prompt, solution=generator_output)
+        CODER_PROMPT.format(problem=prompt, solution=generator_output)
     )
 
     # Use run_agent_with_per_action_coaching with tool_manager
@@ -346,23 +324,11 @@ You have a strict 4k token limit (your thinking inside <think> and </think> tags
     # Agent 2: Refiner (Verifier)
     # ========================================================================
 
-    refiner_prompt = """You are Verifier, the final agent in a 3-agent system: Problem Solver → Code Executor → Verifier (you).
-
-You are the last agent. The system succeeds only if YOU output the correct answer. Evaluate the information below and provide the final answer.
-
-You have a strict 4k token limit (your thinking inside <think> and </think> tags also counts). Anything beyond that will be truncated. Output your final answer as: **\\boxed{{answer}}**
-
-## Problem
-{problem}
-
-## Input from Code Executor
-{execution}"""
-
     logger.info(f"Agent 2 (Refiner/Verifier) starting execution (max_turns={refiner_max_turns})...")
 
     refiner_input = apply_template_with_tokenizer(
         refiner_agent["tokenizer"],
-        refiner_prompt.format(problem=prompt, execution=execution)
+        REFINER_PROMPT.format(problem=prompt, execution=execution)
     )
 
     # Use run_agent_with_per_action_coaching

@@ -19,7 +19,7 @@
 #
 # ALL TRAINING HYPERPARAMETERS IDENTICAL for fair comparison with 8×H100 results.
 #
-# Usage: bash scripts/run_train_mathchat_outcome_only_b200.sh Qwen/Qwen3-4B-Thinking-2507
+# Usage: bash scripts/run_train_mathchat_outcome_only_b200.sh Qwen/Qwen3-4B
 # ============================================================================
 
 MODEL_DIR=${1}
