@@ -1,0 +1,151 @@
+# MathChat Outcome-Only Baseline — adapted for 4×B200 (192GB each)
+#
+# Same as mathchat_outcome_only.yaml but with GPU layout for 4×B200:
+#   GPU 0: problem_solver (1 GPU, colocated)
+#   GPU 1: code_executor  (1 GPU, colocated)
+#   GPU 2: verifier       (1 GPU, colocated)
+#   GPU 3: idle
+#
+# B200 (192GB) easily holds what 2 colocated H100s (160GB) held per agent.
+# Using 1 GPU per agent is symmetric (matching the 8×H100 setup where each
+# agent got 2 identical GPUs) and avoids asymmetric ZeRO-3 config issues.
+#
+# All training hyperparameters IDENTICAL to 8×H100 version for fair comparison.
+#
+# Usage:
+#   python -m marti.cli.commands.train --config-name mathchat_outcome_only_b200 \
+#       default_agent.pretrain=/path/to/model
+
+defaults:
+  - default
+  - _self_
+
+# Workflow configuration — outcome-only (no coach)
+agent_workflow: "chain-of-agents"
+async_workflow: true
+workflow_func_path: "marti/worlds/workflows/mathchat_workflow_outcome_only.py"
+processor_func_path: "marti/worlds/workflows/mathchat_processor.py"
+
+# Workflow parameters
+workflow_args:
+  generator_max_turns: 1
+  coder_max_turns: 2
+  refiner_max_turns: 1
+
+# Tools configuration
+tools_config:
+  num_workers: 16
+  enable_metrics: true
+  enable_rate_limiting: true
+
+  tools:
+    code_interpreter:
+      type: sandbox_fusion
+      enable_rate_limiting: true
+      rate_limit: 30
+      timeout: 30
+      base_url: "http://127.0.0.1:8080/run_code"
+      schema_path: "examples/schema/code.json"
+
+# Agent configuration
+agents:
+  - agent_problem_solver:
+      role: agent_problem_solver
+      is_tuning: true
+      is_reasoning_model: true
+
+  - agent_code_executor:
+      role: agent_code_executor
+      is_tuning: true
+      is_reasoning_model: true
+
+  - agent_verifier:
+      role: agent_verifier
+      is_tuning: true
+      is_reasoning_model: true
+
+shared_agents: false
+parallel_loading: true
+
+# Dataset configuration
+verify_task: "math"
+verify_task_eval: "math"
+packing_samples: true
+mask_truncated_completions: true
+
+prompt_data: "json@./data/MATH"
+input_key: "prompt"
+label_key: "answer"
+apply_chat_template: false
+
+extra_eval_tasks: ["aime", "amc"]
+extra_eval_dir: "./data/Bench"
+
+# Default agent parameters — 1 GPU per agent on B200 (192GB)
+# Training hyperparameters IDENTICAL to 8×H100 version
+default_agent:
+  role: "base"
+  is_reasoning_model: true
+  is_tuning: true
+  pretrain: null
+
+  # vLLM — 1 engine on 1 GPU per agent
+  vllm_num_engines: 1
+  vllm_tensor_parallel_size: 1
+  vllm_gpu_memory_utilization: 0.7
+  vllm_enable_sleep: true
+  vllm_sync_backend: "nccl"
+
+  # GPU allocation — 1 GPU per agent
+  ref_num_nodes: 1
+  ref_num_gpus_per_node: 1
+  actor_num_nodes: 1
+  actor_num_gpus_per_node: 1
+  critic_num_nodes: 1
+  critic_num_gpus_per_node: 1
+  colocate_all_models: true
+
+  # Training — IDENTICAL to 8×H100 version
+  advantage_estimator: "reinforce_plus_plus"
+  training_mode: "rl"
+  num_episodes: 8
+  n_samples_per_prompt: 2
+  rollout_batch_size: 32
+  micro_rollout_batch_size: 8
+  train_batch_size: 16
+  micro_train_batch_size: 1
+  max_epochs: 1
+
+  # Generation
+  prompt_max_len: 24576
+  generate_max_len: 4096
+  temperature: 1.0
+  eval_temperature: 0.6
+  top_p: 1.0
+
+  # Optimization
+  actor_learning_rate: 1.0e-6
+  critic_learning_rate: 9.0e-6
+  zero_stage: 3
+  bf16: true
+  adam_offload: true
+  gradient_checkpointing: true
+  normalize_reward: true
+
+  # Checkpointing
+  save_steps: 32
+  eval_steps: 4
+  n_eval_samples_per_prompt: 2
+  eval_aggregation: "mean"
+  logging_steps: 1
+  max_ckpt_num: 10
+
+  save_path: "./outputs/mathchat_outcome_only_b200"
+  ckpt_path: "./checkpoints/mathchat_outcome_only_b200"
+
+# Logging
+use_wandb: null
+wandb_project: "MARTI-MathChat-Outcome-Only-B200"
+wandb_run_name: null
+use_tensorboard: "./logs/mathchat_outcome_only_b200"
+use_weave: false
