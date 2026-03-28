@@ -10,9 +10,9 @@
 #
 # COACH MODEL ABLATION:
 #   Pass coach model as 2nd argument to compare different coach qualities:
-#     bash scripts/run_train_mathchat_coach_b200.sh Qwen/Qwen3-4B gemini-2.5-flash   # paper default
-#     bash scripts/run_train_mathchat_coach_b200.sh Qwen/Qwen3-4B gemini-2.0-flash-lite  # degraded
-#     bash scripts/run_train_mathchat_coach_b200.sh Qwen/Qwen3-4B gemini-2.5-pro     # upgraded
+#     bash scripts/run_train_mathchat_coach_b200.sh Qwen/Qwen3-4B gemini-2.5-flash       # paper default
+#     bash scripts/run_train_mathchat_coach_b200.sh Qwen/Qwen3-4B gemini-2.5-flash-lite  # degraded (3-6x cheaper)
+#     bash scripts/run_train_mathchat_coach_b200.sh Qwen/Qwen3-4B gemini-2.5-pro         # upgraded
 #
 # CHANGES FROM 8×H100: only GPU layout (num_gpus 2→1, num_engines 2→1)
 # All training hyperparameters IDENTICAL for fair comparison.
