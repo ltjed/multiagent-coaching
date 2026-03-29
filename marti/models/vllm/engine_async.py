@@ -68,10 +68,13 @@ class LLMRayActorAsync(BaseLLMRayActor):
         )
 
     async def update_weight(self, name, dtype, shape, empty_cache=False):
-        return await self.llm.collective_rpc("update_weight", args=(name, dtype, shape, empty_cache))
+        # Convert torch.dtype to string for msgspec serialization in vLLM 0.17+
+        dtype_str = str(dtype) if not isinstance(dtype, str) else dtype
+        return await self.llm.collective_rpc("update_weight", args=(name, dtype_str, shape, empty_cache))
 
     async def update_weight_cuda_ipc(self, name, dtype, shape, ipc_handles, empty_cache=False):
-        return await self.llm.collective_rpc("update_weight_cuda_ipc", args=(name, dtype, shape, ipc_handles, empty_cache))
+        dtype_str = str(dtype) if not isinstance(dtype, str) else dtype
+        return await self.llm.collective_rpc("update_weight_cuda_ipc", args=(name, dtype_str, shape, ipc_handles, empty_cache))
 
     async def reset_prefix_cache(self):
         await self.llm.reset_prefix_cache()
