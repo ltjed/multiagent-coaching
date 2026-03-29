@@ -72,6 +72,7 @@ export PYTORCH_NVML_BASED_CUDA_CHECK=1
 export VLLM_WORKER_MULTIPROC_METHOD=spawn
 export VLLM_ENABLE_V1_MULTIPROCESSING=1
 export NCCL_CUMEM_ENABLE=0  # Required: prevents NCCL hangs during weight sync
+export VLLM_ALLOW_INSECURE_SERIALIZATION=1  # Required: vLLM 0.17 msgspec can't serialize torch.dtype
 export HYDRA_FULL_ERROR=1
 
 # ============================================================================
