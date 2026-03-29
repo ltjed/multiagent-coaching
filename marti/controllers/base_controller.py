@@ -317,7 +317,6 @@ class BaseController(ABC):
             # FIX: Force wandb to detect GPUs
             # Wandb's auto-detection fails in Ray distributed environments,
             # so we manually detect GPUs and pass the count to wandb
-            import os
             detected_gpu_count = None
             try:
                 import pynvml
