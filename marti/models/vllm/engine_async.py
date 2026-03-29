@@ -48,6 +48,7 @@ class LLMRayActorAsync(BaseLLMRayActor):
         self.result_queue = asyncio.Queue()
 
         os.environ["VLLM_USE_V1"] = "1"
+        os.environ["VLLM_ALLOW_INSECURE_SERIALIZATION"] = "1"  # Required: CUDA IPC handles contain functions
         import vllm
         from packaging.version import Version
 
@@ -68,13 +69,10 @@ class LLMRayActorAsync(BaseLLMRayActor):
         )
 
     async def update_weight(self, name, dtype, shape, empty_cache=False):
-        # Convert torch.dtype to string for msgspec serialization in vLLM 0.17+
-        dtype_str = str(dtype) if not isinstance(dtype, str) else dtype
-        return await self.llm.collective_rpc("update_weight", args=(name, dtype_str, shape, empty_cache))
+        return await self.llm.collective_rpc("update_weight", args=(name, dtype, shape, empty_cache))
 
     async def update_weight_cuda_ipc(self, name, dtype, shape, ipc_handles, empty_cache=False):
-        dtype_str = str(dtype) if not isinstance(dtype, str) else dtype
-        return await self.llm.collective_rpc("update_weight_cuda_ipc", args=(name, dtype_str, shape, ipc_handles, empty_cache))
+        return await self.llm.collective_rpc("update_weight_cuda_ipc", args=(name, dtype, shape, ipc_handles, empty_cache))
 
     async def reset_prefix_cache(self):
         await self.llm.reset_prefix_cache()

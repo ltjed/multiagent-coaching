@@ -57,10 +57,6 @@ class WorkerWrap:
         """Broadcast weight to all vllm workers from source rank 0 (actor model)"""
         import torch
 
-        # Convert string dtype back to torch.dtype (sent as string for msgspec compat)
-        if isinstance(dtype, str):
-            dtype = getattr(torch, dtype.replace("torch.", ""))
-
         """Broadcast weight to all vllm workers from source rank 0 (actor model)"""
         if torch.distributed.get_rank() == 0:
             print(f"update weight: {name}, dtype: {dtype}, shape: {shape}")
@@ -85,10 +81,6 @@ class WorkerWrap:
     def update_weight_cuda_ipc(self, name, dtype, shape, ipc_handles=None, empty_cache=False):
         import torch
         from marti.helpers.common import get_physical_gpu_id
-
-        # Convert string dtype back to torch.dtype (sent as string for msgspec compat)
-        if isinstance(dtype, str):
-            dtype = getattr(torch, dtype.replace("torch.", ""))
 
         if torch.distributed.get_rank() == 0:
             print(f"update weight: {name}, dtype: {dtype}, shape: {shape}")
