@@ -1028,6 +1028,9 @@ class BaseController(ABC):
             # TensorBoard
             elif self._tensorboard is not None:
                 for k, v in logs_dict.items():
+                    # Skip non-scalar values (dicts, lists, etc.)
+                    if isinstance(v, (dict, list)):
+                        continue
                     # save eval logs to eval folder
                     if len(k.split("/")) == 2:
                         split, k = k.split("/")
