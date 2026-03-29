@@ -106,8 +106,8 @@ class MultiAgentWorldAsync(BaseWorld):
                 min_tokens=generate_kwargs.get("min_new_tokens", 16),
                 skip_special_tokens=generate_kwargs.get(
                     "skip_special_tokens", False),
-                include_stop_str_in_output=True,
-                truncate_prompt_tokens=self.args.prompt_max_len if self.args.truncate_prompt else None)
+                include_stop_str_in_output=True)
+            sampling_params.truncate_prompt_tokens = self.args.prompt_max_len if self.args.truncate_prompt else None
 
             agent_dict = {
                 "llm": llms[0],
