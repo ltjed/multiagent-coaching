@@ -20,6 +20,7 @@ ENV/
 logs/
 wandb/
 outputs/
+experiments/
 checkpoints/
 *.ckpt
 *.pt
